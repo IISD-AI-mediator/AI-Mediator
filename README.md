@@ -33,3 +33,30 @@ Work is organized into the following branches by responsibility:
 | `feat/frontend` | Frontend development, including user interfaces and API integration. |
 | `feat/architect` | System architecture and foundational code, including project structure and shared infrastructure. |
 | `feat/backend` | Backend development, including APIs, business logic, and data storage. |
+
+## Getting Started for Collaborators
+
+1. Clone the repository and enter the project directory:
+
+   ```bash
+   git clone https://github.com/IISD-AI-mediator/AI-Mediator.git
+   cd AI-Mediator
+   ```
+
+2. Switch to the branch for your area of work. Run one of the following commands:
+
+   | Area | Command |
+   | --- | --- |
+   | Product management | `git switch docs/product-manage` |
+   | Design | `git switch docs/design` |
+   | Frontend | `git switch feat/frontend` |
+   | Architecture | `git switch feat/architect` |
+   | Backend | `git switch feat/backend` |
+
+   On the first switch after cloning, Git automatically creates a local branch that tracks the matching branch on `origin`.
+
+3. Confirm your current branch before starting work:
+
+   ```bash
+   git branch --show-current
+   ```
