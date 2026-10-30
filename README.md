@@ -4,7 +4,7 @@ An Interactive Intelligent System Design team project by **Team Whisper Rabbit**
 
 ## Project Overview
 
-AI-Mediator is an application that supports group decision-making when members find it difficult to openly express their honest thoughts or reconcile differing opinions. It aims to help members share their perspectives and work toward a shared decision.
+AI-Mediator helps friends and groups make everyday choices together, like where to eat, what to do this weekend, or where to go on a trip. Sometimes it's hard to say what you really want, or everyone has something different in mind. The app aims to make it easier to share those little preferences and find an option everyone feels good about.
 
 ## Team
 
