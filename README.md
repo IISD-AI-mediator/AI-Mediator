@@ -14,6 +14,14 @@ AI-Mediator is an application that supports group decision-making when members f
 | Product Managers | Kiuk Kim, Suyeon Kwon |
 | Developers | Jinseo Kim, Jieun Jeong, Harin Hwang |
 
+## Technology Stack
+
+| Area | Technologies |
+| --- | --- |
+| Frontend | React, HTML, CSS |
+| Backend | FastAPI, MySQL |
+| AI Agent | Codex |
+
 ## Branch Strategy
 
 Work is organized into the following branches by responsibility:
