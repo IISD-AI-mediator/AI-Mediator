@@ -102,6 +102,18 @@ input[readonly],textarea[readonly] {background:#f7f8f6}
 .field-list {display:grid; gap:.82rem}
 .field-card {min-width:0; margin:0; border:1px solid var(--line); padding:.5rem .85rem .8rem; border-radius:10px}
 .field-card legend {padding:0 .3rem; font-size:.98rem; font-weight:700}
+.locked-field {background:#eeefed; border:1px solid #d2d5d1; border-radius:10px; padding:.85rem 1rem}
+.locked-field p {margin-top:.35rem; color:#3f4541}
+.lock-badge {display:inline-flex; align-items:center; gap:.36rem; font-size:.78rem; color:#424843}
+.lock-icon {position:relative; display:inline-block; height:8px; width:10px; border:1.4px solid currentColor; border-radius:2px}
+.lock-icon::before {content:""; position:absolute; width:6px; height:6px; border:1.3px solid currentColor; border-bottom:0; border-radius:5px 5px 0 0; top:-6px; left:.5px}
+input[type=range] {min-height:44px; padding:0; width:100%; border:0; background:transparent; accent-color:#313932}
+.persona-range {margin:.95rem 0; padding:0 .15rem}
+.range-caption,.range-ends {display:flex; align-items:center; justify-content:space-between; gap:1rem}
+.range-caption .input-label {margin:0}
+.range-ends,.range-value {font-size:.83rem; color:#505652}
+.range-value {font-variant-numeric:tabular-nums; font-weight:700}
+.sound-toggle {border:1px solid var(--line); border-radius:8px; font-size:.82rem; padding:.4rem .65rem}
 .segmented {display:flex; gap:4px; border-radius:7px; padding:3px; background:#eff0ee; width:fit-content; max-width:100%}
 .segment {position:relative; cursor:pointer}
 .segment input {position:absolute; width:1px; height:1px; opacity:0}

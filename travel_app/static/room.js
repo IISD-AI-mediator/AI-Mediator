@@ -1,4 +1,5 @@
 import {announce, api, append, btn, el, errorBox, fields, fmt, labeled, line, read, retryKey, save, shell, showError, swap} from "./ui.js";
+import {ring,soundControl} from "./alerts.js";
 
 const statuses = {fixed: "사전 확정", agreed: "합의", unresolved: "미해결", verify: "확인 필요"};
 
@@ -30,7 +31,7 @@ function proposals(history) {
 export function negotiation(initial, endpoint, refresh, showFinal) {
   const page = shell("여행을 조율하고 있어요.", "", "에이전트 협상");
   const phase = el("div", "phase-line"), badge = el("span", "phase"), words = el("p", "muted");
-  phase.append(badge, words); page.append(phase);
+  phase.append(badge, words,soundControl()); page.append(phase);
   const done = btn("최종 여행안 보기  →", showFinal, "button primary"); done.hidden = true; page.append(done);
   const fightBox = el("aside", "fight-banner"); fightBox.hidden = true;
   const fightTitle = el("strong"), fightReason = el("p"), openChat = btn("대화 보기  ↓", () => {
@@ -93,7 +94,10 @@ export function negotiation(initial, endpoint, refresh, showFinal) {
       fightTitle.textContent = latestFight.round + "회차 파이트 모드 " + (active ? "알림" : "기록");
       fightReason.textContent = latestFight.text;
       const key = "fight-seen:" + room.invite;
-      if (read(key, 0) < latestFight.id) {save(key, latestFight.id); announce(latestFight.text);}
+      if (read(key, 0) < latestFight.id) {
+        save(key, latestFight.id);
+        if (active) {announce(latestFight.text); ring();}
+      }
     }
     issue.hidden = !room.error;
     if (room.error) {issueText.textContent = room.error; resume.hidden = !room.can_retry;}

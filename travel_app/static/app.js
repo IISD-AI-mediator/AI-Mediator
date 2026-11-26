@@ -1,6 +1,7 @@
 import {announce, api, append, btn, el, errorBox, fixedList, input, labeled, main, read, retryKey, revealGuide, save, selectControl, setup, shell, showError, swap} from "./ui.js";
-import {collect, fieldEditor, formSection, nameInput, profileBody, profileSummary, submitButton} from "./forms.js";
+import {collect, fieldEditor, formSection, nameInput, normalizedPersona, personaEditor, profileBody, profileSummary, submitButton} from "./forms.js";
 import {negotiation, resultScreen} from "./room.js";
+import {soundControl} from "./alerts.js";
 
 const guide = document.getElementById("guide");
 document.getElementById("help").addEventListener("click", revealGuide);
@@ -35,21 +36,20 @@ function createScreen() {
   const page = shell("여행방 만들기", "함께 갈 인원과 이미 확정한 조건을 정해요.", "방장 설정");
   const form = el("form"), basic = formSection("여행방 설정", "");
   const name = nameInput(draft.name), capacity = selectControl(Array.from({length: 7}, (_, i) => [i + 2, (i + 2) + "명"]), draft.capacity);
-  const mediator = selectControl(setup.mediatorStyles, draft.mediator);
+  draft.mediator = normalizedPersona(draft.mediator,setup.mediatorStyles);
+  const mediator = personaEditor("방 중재자의 성격과 말투",draft.mediator,setup.mediatorStyles,persist);
   name.addEventListener("input", () => {draft.name = name.value; persist();});
   capacity.addEventListener("change", () => {draft.capacity = Number(capacity.value); persist();});
-  mediator.addEventListener("change", () => {draft.mediator = mediator.value; persist();});
   const code = input("password", "", "팀에서 공유한 코드"); code.autocomplete = "off"; code.required = setup.needsCode;
-  basic.append(append(el("div", "pair"), labeled("내 닉네임", name, "name"), labeled("총인원 · 방장 포함", capacity, "capacity")),
-    labeled("방 전체 중재자의 진행 성향", mediator, "mediator"));
+  basic.append(append(el("div", "pair"), labeled("내 닉네임", name, "name"), labeled("총인원 · 방장 포함", capacity, "capacity")));
   if (setup.needsCode) basic.append(labeled("팀 방 개설 코드", code, "team_code"));
   const conditional = formSection("미리 확정할 조건", "여기서 직접 입력한 항목은 방에 있는 모두에게 고정돼요. 아직 정해지지 않았다면 맡겨 주세요.");
   conditional.append(fieldEditor(draft, {}, false, persist));
   const error = errorBox(), submit = submitButton("여행방 만들기  →");
-  form.append(basic, conditional, error, append(el("div", "actions"), btn("이전", welcome), submit));
+  form.append(basic, conditional, mediator, error, append(el("div", "actions"), btn("이전", welcome), submit));
   form.addEventListener("submit", async e => {
     e.preventDefault(); if (submit.disabled) return;
-    const body = {name: name.value.trim(), capacity: Number(capacity.value), mediator: mediator.value, fixed: collect(draft, false)};
+    const body = {name: name.value.trim(), capacity: Number(capacity.value), mediator: draft.mediator, fixed: collect(draft, false)};
     const key = retryKey("create", body);
     submit.disabled = true;
     try {
@@ -100,16 +100,15 @@ function profileScreen(room) {
   const page = shell("내 여행 조건", "직접 정하고 싶은 것만 선택해요. 나머지는 내 에이전트가 함께 조율해요.", "준비 1 / 2");
   const form = el("form");
   if (room.member.seat === 1) page.append(invitePanel());
-  page.append(fixedList(room.fixed));
+  if (room.member.agent) page.append(append(el("section","panel"),el("h3","","내 에이전트의 임무"),el("p","muted",room.member.agent.mission)));
   const section = formSection("내가 원하는 조건", "직접 입력한 항목은 중요도도 정할 수 있어요.");
   section.append(fieldEditor(draft, room.fixed, true, persist));
   if (Object.keys(room.fixed).length === setup.fields.length) section.append(el("p", "muted", "모든 여행 항목이 확정됐어요. 내 에이전트의 성향과 추가 요청을 정해 주세요."));
-  const personal = formSection("내 에이전트 설정", "추가 요청은 나와 내 에이전트만 볼 수 있어요.");
-  const style = selectControl(setup.agentStyles, draft.persona);
-  style.addEventListener("change", () => {draft.persona = style.value; persist();});
+  draft.persona = normalizedPersona(draft.persona,setup.agentStyles);
+  const personal = personaEditor("내 에이전트의 성격과 말투",draft.persona,setup.agentStyles,persist);
   const extra = el("textarea"); extra.value = draft.extra; extra.maxLength = 600; extra.rows = 3; extra.placeholder = "조율할 때 고려할 점을 적어 주세요.";
   extra.addEventListener("input", () => {draft.extra = extra.value; persist();});
-  personal.append(labeled("나를 대신할 에이전트의 성향", style, "persona"), labeled("추가 요청 · 선택", extra, "extra"));
+  personal.append(labeled("내 에이전트만 읽는 추가 요청 · 선택", extra, "extra"));
   form.append(section, personal, submitButton("제출 내용 확인  →"));
   form.addEventListener("submit", e => {e.preventDefault(); save(roomKey("review"), true); route(lastRoom);});
   page.append(form); swap(page, "내 여행 조건");
@@ -132,7 +131,7 @@ function reviewScreen(room) {
 function waitingScreen(room) {
   const page = shell("친구들을 기다려요.", "모두 준비를 마치면 각자의 에이전트가 조율을 시작해요.", "준비 완료");
   const counts = el("p", "counts"), roster = el("ul", "roster"), section = el("section", "panel");
-  section.append(el("h2", "", "참여자"), counts, roster); page.append(section, invitePanel(), profileSummary(room.member.profile));
+  section.append(el("h2", "", "참여자"), counts, roster); page.append(soundControl(), section, invitePanel(), profileSummary(room.member.profile));
   swap(page, "참여자 기다리기");
   let prior = "";
   return r => {

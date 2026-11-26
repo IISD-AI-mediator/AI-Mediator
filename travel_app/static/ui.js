@@ -44,7 +44,10 @@ export function line(label, value) {
 }
 export function fmt(value) {
   if (value == null || value === "") return "미정";
-  if (typeof value === "object" && "amount" in value) return Number(value.amount).toLocaleString("ko-KR") + " " + value.currency;
+  if (typeof value === "object" && "amount" in value) {
+    if (value.currency === "KRW") return value.amount % 10000 === 0 ? Number(value.amount / 10000).toLocaleString("ko-KR") + "만 원" : Number(value.amount).toLocaleString("ko-KR") + "원";
+    return Number(value.amount).toLocaleString("ko-KR") + " " + value.currency;
+  }
   if (typeof value === "object" && "start" in value) return value.start + " ~ " + value.end;
   return String(value);
 }
