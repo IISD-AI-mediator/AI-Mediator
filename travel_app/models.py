@@ -132,8 +132,15 @@ def public_context(kind, fixed, preferences, inferred=None):
     return context
 
 
+def uncertain(excerpt):
+    return bool(re.search(
+        r"없(?:습니다|어요|다|는|음|었)|확인(?:할 수 없|되지 않|이 필요|이 어렵| 불가)|"
+        r"미확인|불확실|불분명|미제공|제공하지 않|운영하지 않|폐업|휴업|찾(?:을 수 없|지 못)|"
+        r"있을 수 있|추정|가능성|문의.{0,5}필요|\b(?:unavailable|unconfirmed|cannot confirm|no evidence)\b", excerpt, re.I))
+
+
 def restaurant_match(excerpt, context):
-    if re.search(r"확인(?:할 수 없|되지 않|이 필요|이 어렵| 불가)|미확인|불확실|불분명|제공하지 않|찾(?:을 수 없|지 못)|정보.{0,6}없|있을 수 있|추정|가능성", excerpt):
+    if uncertain(excerpt) or not re.search(r"제공|판매|운영|취급|메뉴.{0,14}있|주문.{0,12}가능|먹을 수 있|선보|serves?|offers?",excerpt,re.I):
         return False
     def terms(value):
         return [w for w in re.findall(r"[가-힣A-Za-z0-9]{2,}", str(value).casefold())
@@ -188,7 +195,7 @@ def grounded_search(adapter, kind, context):
                 title = "항공 운임 조회 출처"
             item = {"title": title, "url": url,
                     "excerpt": excerpt[:650] if kind != "flight" else "", "quote": observed,
-                    "matched": restaurant_match(excerpt, context) if kind == "restaurant" else bool(observed) if kind == "flight" else True}
+                    "matched": restaurant_match(excerpt, context) if kind == "restaurant" else bool(observed) if kind == "flight" else not uncertain(excerpt)}
             result["sources"].append(item)
             if len(result["sources"]) >= 6:
                 break
