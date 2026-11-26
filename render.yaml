@@ -3,6 +3,8 @@ services:
     name: iisd-travel-mediator
     runtime: python
     plan: free
+    region: singapore
+    branch: feat/jskim
     buildCommand: pip install -r requirements.txt
     startCommand: waitress-serve --listen=0.0.0.0:$PORT --threads=8 travel_app.wsgi:app
     healthCheckPath: /healthz
@@ -12,10 +14,19 @@ services:
       - key: GEMINI_API_KEY
         sync: false
       - key: ROOM_CREATE_CODE
-        sync: false
+        generateValue: true
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: iisd-travel-postgres
+          property: connectionString
       - key: COOKIE_SECURE
         value: "1"
       - key: ROOM_LIMIT
         value: "20"
+databases:
+  - name: iisd-travel-postgres
+    region: singapore
+    plan: free
+    databaseName: travel
+    user: travel_app
+    ipAllowList: []
