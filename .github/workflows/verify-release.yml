@@ -3,7 +3,12 @@ name: Verify and release the travel app
 on:
   push:
     branches: [feat/jskim]
-    paths: [VERSION, '.github/workflows/verify-release.yml']
+    paths:
+      - VERSION
+      - 'travel_app/**'
+      - 'tests/**'
+      - requirements.txt
+      - '.github/workflows/verify-release.yml'
   workflow_dispatch:
 
 permissions:
