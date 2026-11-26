@@ -1,0 +1,52 @@
+name: Check the published travel app
+
+on:
+  push:
+    branches: [feat/jskim]
+    paths: ['.github/workflows/verify-hosted.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check the tagged deployment from outside Render
+        shell: python
+        run: |
+          import json, subprocess, time
+          from pathlib import Path
+          from urllib.error import HTTPError, URLError
+          from urllib.request import Request, urlopen
+
+          origin = 'https://iisd-travel-mediator-bogc.onrender.com'
+          version = Path('VERSION').read_text().strip()
+          commit = subprocess.check_output(['git', 'rev-parse', f'v{version}^{{commit}}'], text=True).strip()
+          for attempt in range(4):
+              try:
+                  with urlopen(origin + '/healthz', timeout=65) as response:
+                      health = json.load(response)
+                  break
+              except (HTTPError, URLError, TimeoutError):
+                  if attempt == 3:
+                      raise
+                  time.sleep(5)
+          assert health == {'status': 'ok', 'version': version, 'revision': commit}, health
+          print('Health, database and release commit:', health)
+          for endpoint, marker in [('/', '동행'), ('/static/app.js', 'import'), ('/static/style.css', '{')]:
+              with urlopen(origin + endpoint, timeout=30) as response:
+                  assert response.status == 200 and marker in response.read().decode(), endpoint
+              print('Public route OK:', endpoint)
+          try:
+              req = Request(origin + '/api/rooms', data=b'{}', headers={'Content-Type': 'application/json'})
+              urlopen(req, timeout=30)
+              raise AssertionError('Private room creation was not protected')
+          except HTTPError as error:
+              assert error.code == 403 and json.load(error).get('field') == 'team_code'
+          print('Team-only room creation confirmed')
