@@ -1,0 +1,37 @@
+name: Retire the five previous project branches
+
+on:
+  push:
+    branches: [feat/jskim]
+    paths: ['.github/workflows/retire-legacy.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  retire:
+    if: github.repository_id == '1439882982' && github.event.head_commit.message == 'chore(git): retire five merged planning branches'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Delete only the five reviewed, merged refs at their original commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          baseline=8c24b2ee98114f06b7aa9c34d39a5bad9cb1e2ff
+          git merge-base --is-ancestor "$baseline" origin/main
+          leases=()
+          deletes=()
+          for branch in docs/design docs/product-manage feat/architect feat/backend feat/frontend; do
+            ref="refs/heads/$branch"
+            current=$(git ls-remote --heads origin "$ref" | cut -f1)
+            if [[ -z "$current" ]]; then continue; fi
+            test "$current" = "$baseline"
+            leases+=("--force-with-lease=$ref:$baseline")
+            deletes+=(":$ref")
+          done
+          if (( ${#deletes[@]} )); then
+            git push --atomic "${leases[@]}" origin "${deletes[@]}"
+          fi
