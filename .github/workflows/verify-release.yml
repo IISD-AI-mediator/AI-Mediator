@@ -44,7 +44,8 @@ jobs:
           sys.exit(not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful())
   publish:
     needs: windows
-    if: github.event_name == 'push' && startsWith(github.event.head_commit.message, 'chore(release): publish v')
+    if: >-
+      github.event_name == 'push' && startsWith(github.event.head_commit.message, 'chore(release): publish v')
     runs-on: ubuntu-latest
     permissions:
       contents: write

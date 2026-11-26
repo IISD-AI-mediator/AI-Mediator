@@ -10,7 +10,8 @@ permissions:
 
 jobs:
   retire:
-    if: github.repository_id == '1439882982' && github.event.head_commit.message == 'chore(git): retire five merged planning branches'
+    if: >-
+      github.repository_id == '1439882982' && github.event.head_commit.message == 'chore(git): retire five merged planning branches'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
