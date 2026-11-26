@@ -180,6 +180,7 @@ def located_venue(excerpt, destination):
     name = r"(?P<venue>[가-힣A-Za-z0-9][가-힣A-Za-z0-9 '’·&()\-]{0,70}?)"
     patterns = (
         r"^" + name + r"(?:은|는|이|가)\s*" + country + address + r"\s*에\s*(?:위치|자리|있|소재|속)",
+        r"^" + name + r"(?:은|는|이|가)\s*" + country + address + r"\s*의\s*(?:(?:대표적인|유명한|대표|인기)\s*)?(?:명소|숙소|호텔|관광지|박물관|공원|식당)",
         r"^" + country + address + r"\s*(?:의|에\s*(?:위치한|있는|자리한|자리 잡은|소재한))\s+" + name + r"(?:에서는|에서|은|는|을|를|이|가)(?:\s|$)",
         r"^" + name + r"\s+is\s+(?:located\s+)?in\s+" + city + r"\b",
     )
@@ -230,6 +231,14 @@ def grounded_search(adapter, kind, context):
             continue
         indices = support.get("groundingChunkIndices") or []
         observed = flight_quote(excerpt, context) if kind == "flight" and len(indices) == 1 else None
+        venue = ""
+        if kind == "flight":
+            matched = bool(observed)
+        elif kind == "restaurant":
+            matched = restaurant_match(excerpt, context)
+        else:
+            venue = located_venue(excerpt[:650], context.get("destination")) if len(indices) == 1 else ""
+            matched = bool(venue)
         for idx in indices:
             if type(idx) is not int or not 0 <= idx < len(chunks):
                 continue
@@ -241,9 +250,6 @@ def grounded_search(adapter, kind, context):
             title = str(web.get("title") or "검색 출처")[:140]
             if kind == "flight" and not re.fullmatch(r"[\w.-]+\.[A-Za-z]{2,}", title):
                 title = "항공 운임 조회 출처"
-            venue = located_venue(excerpt[:650], context.get("destination")) if kind in ("lodging", "activity") else ""
-            matched = {"restaurant": lambda: restaurant_match(excerpt, context),
-                       "flight": lambda: bool(observed)}.get(kind, lambda: bool(venue))()
             item = {"title": title, "url": url,
                     "excerpt": excerpt[:650] if kind != "flight" else "", "quote": observed,
                     "matched": matched, "venue": venue}

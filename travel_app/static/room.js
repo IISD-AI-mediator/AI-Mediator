@@ -164,7 +164,8 @@ export function resultScreen(room) {
   schedule.append(el("h2", "", "날짜별 일정"));
   if (!result.itinerary.length) schedule.append(el("p", "muted", "확정할 수 있는 날짜별 세부 일정은 아직 미정이에요."));
   else for (const day of result.itinerary) {
-    const rows = el("dl", "rows"); rows.append(line("장소", day.place || "미정"), line("이동", day.transport || "미정"), line("활동", day.activity || "미정"));
+    const place = (day.place || "미정") + (day.place_status === "verify" ? " · 세부 장소 확인 필요" : "");
+    const rows = el("dl", "rows"); rows.append(line("장소", place), line("이동", day.transport || "미정"), line("활동", day.activity || "미정"));
     schedule.append(details(day.date + (day.place ? " · " + day.place : ""), rows));
   }
   page.append(schedule);

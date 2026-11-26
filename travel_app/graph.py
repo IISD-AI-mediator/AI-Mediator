@@ -179,7 +179,9 @@ class Workflow:
         return apply
 
     def open(self, snapshot):
-        tone = snapshot.get("mediator_tone") or tone_settings(self.mediator, snapshot["mediator"])
+        tone = snapshot.get("mediator_tone") or {}
+        if tone.get("preset") != snapshot["mediator"]["preset"]:
+            tone = tone_settings(self.mediator, snapshot["mediator"])
         def apply(room):
             number = room["floor"]["round"] + 1 if room["floor"] else 1
             topic = room["draft"]["conflicts"][0]

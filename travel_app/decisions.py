@@ -5,6 +5,7 @@ import re
 from datetime import date
 
 from .domain import BY_KEY, Problem, display, value_for
+from .models import located_venue
 
 
 def private_texts(room):
@@ -58,6 +59,12 @@ def public_sources(proposals):
     result, seen = [], set()
     for proposal in proposals.values():
         for evidence in proposal.get("evidence", []):
+            if evidence["kind"] in ("lodging", "activity") and evidence["status"] == "observed":
+                sources = [{**s, "matched": s.get("matched", True) and bool(located_venue(s.get("excerpt"), evidence.get("destination")))}
+                           for s in evidence["sources"]]
+                evidence = {**evidence, "sources": sources}
+                if not any(s["matched"] for s in sources):
+                    evidence.update(status="verify", reason="출처에서 이 장소가 여행지 안에 있는지 확인해야 해요.")
             identity = json.dumps([evidence["kind"], evidence["reason"], evidence["sources"]],
                                   sort_keys=True, ensure_ascii=False)
             if identity not in seen:
@@ -151,14 +158,18 @@ def itinerary(entries, rows, private, evidence=()):
         activity = safe_text(row.get("activity"), private, 180)
         transport = safe_text(row.get("transport"), private, 80)
         destination = entries["destination"]
+        place_status = "base"
         if destination["status"] not in ("agreed", "fixed"):
-            place = ""
+            place, place_status = "", "verify"
         elif destination["value"] and place != destination["value"]:
             verified = place and row.get("base") == destination["value"] and any(
                 e.get("destination") == destination["value"] and e["status"] == "observed" and
-                any(s.get("matched", True) and place in s.get("excerpt","") for s in e["sources"]) for e in evidence)
-            if not verified:
-                place = destination["value"]
+                any(s.get("matched", True) and located_venue(s.get("excerpt"), destination["value"]).casefold() == place.casefold()
+                    for s in e["sources"]) for e in evidence)
+            if verified:
+                place_status = "observed"
+            else:
+                place, place_status = destination["value"], "verify"
         local = entries.get("local_transport", {})
         if local.get("status") in ("fixed", "agreed"):
             transport = display(local["value"])
@@ -169,5 +180,6 @@ def itinerary(entries, rows, private, evidence=()):
         elif entries["activities"]["status"] in ("unresolved", "verify"):
             activity = ""
         if place or activity or transport:
-            result.append({"date": when.isoformat(), "place": place, "transport": transport, "activity": activity})
+            result.append({"date": when.isoformat(), "place": place, "place_status": place_status,
+                           "transport": transport, "activity": activity})
     return sorted(result, key=lambda r: r["date"])
