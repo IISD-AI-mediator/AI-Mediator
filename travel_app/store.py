@@ -261,6 +261,7 @@ def view(room, token):
         public["can_join"] = room["mode"] == "waiting" and public["joined"] < room["capacity"]
         return public
     public.update({key: room[key] for key in ("mode", "round", "events", "history", "result", "error")})
+    public["server_time"] = time.time()
     public["members"] = [{k: m[k] for k in ("seat", "name", "ready")} for m in room["members"]]
     public["member"] = {k: me[k] for k in ("seat", "name", "ready", "profile")}
     public["member"]["notes"] = [
