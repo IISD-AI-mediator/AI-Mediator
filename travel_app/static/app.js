@@ -103,6 +103,7 @@ function profileScreen(room) {
   page.append(fixedList(room.fixed));
   const section = formSection("내가 원하는 조건", "직접 입력한 항목은 중요도도 정할 수 있어요.");
   section.append(fieldEditor(draft, room.fixed, true, persist));
+  if (Object.keys(room.fixed).length === setup.fields.length) section.append(el("p", "muted", "모든 여행 항목이 확정됐어요. 내 에이전트의 성향과 추가 요청을 정해 주세요."));
   const personal = formSection("내 에이전트 설정", "추가 요청은 나와 내 에이전트만 볼 수 있어요.");
   const style = selectControl(setup.agentStyles, draft.persona);
   style.addEventListener("change", () => {draft.persona = style.value; persist();});

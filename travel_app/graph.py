@@ -148,9 +148,9 @@ class Workflow:
             "불충분한 근거와 다른 통화·조건의 비교는 verify다. 미정은 null로 둔다. 발언에서 양보한 조건은 조정할 수 있다. "
             "누가 지시했는지나 개인 사정을 공개하지 않는다. 각 칸의 값은 지정한 데이터 형식을 따른다. "
             "예산의 단위는 1인 총액이다. 증명되지 않은 운임·최저가는 쓰지 않는다. 예약이나 이동 가능성을 보장하지 않는다. "
-            "날짜 범위가 있으면 날짜별로 장소·이동·활동을 간단히 제시하라. "
+            "날짜 범위가 있으면 날짜별로 장소·이동·활동을 간단히 제시하라. base는 그날의 여행지 값과 일치해야 한다. "
             'JSON {"entries":{"항목 키":{"value":값,"status":"agreed|verify|unresolved","reason":"한국어 한 문장"}},'
-            '"conflicts":["다시 협상해야 하는 항목 키"],"itinerary":[{"date":"YYYY-MM-DD","place":"장소","transport":"이동","activity":"활동"}]}로 답하라.',
+            '"conflicts":["다시 협상해야 하는 항목 키"],"itinerary":[{"date":"YYYY-MM-DD","base":"여행지","place":"장소","transport":"이동","activity":"활동"}]}로 답하라.',
             {"fixed": snapshot["fixed"], "fields": FIELD_GUIDE, "proposals": proposals,
              "previous": snapshot["history"], "round": snapshot["round"]})
         if not isinstance(raw.get("entries"), dict) or not (set(raw["entries"]) & BY_KEY.keys()):
@@ -210,7 +210,8 @@ class Workflow:
             "작성자 정보를 출력하지 않는다. 공개 발언을 위한 구조화된 협상 행동만 선택한다. "
             "focus는 항목 키, choice는 그 항목 후보의 0부터 시작하는 번호다. 대안이 새로 필요하면 new_value에 "
             "짧은 지명·예산 등 항목 값만 넣고 사유를 쓰지 않는다. stance는 defend, yield, alternative, verify 중 하나다. "
-            'JSON {"focus":"키","choice":0,"stance":"yield","new_value":null}로 답하라.',
+            "새 지시가 명시적으로 중요도 변경을 요청하면 priority를 must, important 또는 prefer로 설정한다. "
+            'JSON {"focus":"키","choice":0,"stance":"yield","new_value":null,"priority":null}로 답하라.',
             {"disputed": original_topic, "my_values": personal["values"], "my_persona": member["profile"]["persona"],
              "my_new_private_instructions": [n["text"] for n in notes], "fields": FIELD_GUIDE,
              "public_options": alternatives, "public_conversation": snapshot["events"][-12:]})
@@ -230,7 +231,11 @@ class Workflow:
             p = room["proposals"][str(seat)]
             p["stance"], p["focus"] = stance, topic
             if value is not None and p["values"].get(topic, {}).get("priority") != "must":
-                p["values"][topic] = {"value": value, "priority": "prefer"}
+                previous = p["values"].get(topic, {})
+                priority = previous.get("priority", "prefer") if previous.get("value") == value and stance != "yield" else "prefer"
+                if notes and raw.get("priority") in ("prefer", "important", "must"):
+                    priority = raw["priority"]
+                p["values"][topic] = {"value": value, "priority": priority}
             event(room, "speech", actor(room, seat), spoken(member["profile"]["persona"], stance, topic, value), topic)
             room["members"][seat - 1]["handled"] = watermark
             room["floor"]["speaker"], room["step"] = None, "floor"
@@ -240,9 +245,11 @@ class Workflow:
         def apply(room):
             final = room["draft"]
             for key in final["conflicts"]:
-                if key not in room["fixed"]:
-                    final["entries"][key].update(status="unresolved", value=None,
-                                                  reason="조율 회차 안에 함께 수용할 조건을 확정하지 못했어요.")
+                entry = final["entries"][key]
+                if key not in room["fixed"] and entry["status"] != "verify":
+                    if entry["value"] is not None:
+                        entry["reason"] = "조율 회차 안에 함께 수용할 조건을 확정하지 못했어요."
+                    entry.update(status="unresolved", value=None)
             for key, value in room["fixed"].items():
                 final["entries"][key] = {"value": value, "status": "fixed", "reason": "방을 만들 때 확정한 조건이에요."}
             room["result"] = final

@@ -1,4 +1,4 @@
-import {append, btn, el, errorBox, fields, fixedList, fmt, input, labeled, labels, line, selectControl, setup} from "./ui.js";
+import {append, el, errorBox, fields, fmt, input, labeled, labels, line, selectControl, setup} from "./ui.js";
 
 export function fieldEditor(draft, fixed, personal, persist) {
   const list = el("div", "field-list");
@@ -29,9 +29,11 @@ export function fieldEditor(draft, fixed, personal, persist) {
       const start = input("date", saved.value?.start), end = input("date", saved.value?.end);
       const changed = () => {
         saved.value = {start: start.value, end: end.value};
-        end.min = start.value; end.setCustomValidity(start.value && end.value && end.value < start.value ? "종료일은 시작일 이후로 골라 주세요." : "");
+        end.min = start.value;
+        end.max = start.value && Number.isFinite(start.valueAsNumber) ? new Date(start.valueAsNumber + 365 * 86400000).toISOString().slice(0, 10) : "";
+        end.setCustomValidity(start.value && end.value && end.value < start.value ? "종료일은 시작일 이후로 골라 주세요." : "");
       };
-      end.min = start.value;
+      if (saved.value) changed();
       controls.append(append(el("div", "pair"), labeled("시작일", watch(start, changed)), labeled("종료일", watch(end, changed))));
     } else if (item.kind === "money") {
       const money = input("number", saved.value?.amount, "예: 500000");

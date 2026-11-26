@@ -85,7 +85,8 @@ def policy(room, key, raw_value, private):
         return None, "unresolved", "서로 다른 필수 조건을 모두 충족할 한 가지 값을 확정할 수 없어요."
     if needs:
         return needs[0], "agreed", "참여자가 꼭 지켜야 한다고 정한 조건을 우선했어요."
-    important = distinct(p["value"] for p in stated if p["priority"] == "important")
+    # A personal agent may explicitly yield a soft preference during debate.
+    important = distinct(p["value"] for p in proposals if p["priority"] == "important")
     if len(important) == 1 and any(value == p["value"] and p["priority"] == "prefer" for p in stated) and value != important[0]:
         return important[0], "agreed", "일반 선호보다 높은 중요도로 제출한 조건을 우선했어요."
     if value is None:
@@ -146,11 +147,16 @@ def itinerary(entries, rows, private):
         place = safe_text(row.get("place"), private, 100)
         activity = safe_text(row.get("activity"), private, 180)
         transport = safe_text(row.get("transport"), private, 80)
-        if entries["destination"]["status"] not in ("agreed", "fixed"):
+        destination = entries["destination"]
+        if destination["status"] not in ("agreed", "fixed"):
             place = ""
+        elif destination["value"] and (not place or (destination["value"] not in place and row.get("base") != destination["value"])):
+            place = destination["value"]
         if entries["transport"]["status"] in ("fixed", "agreed"):
             transport = display(entries["transport"]["value"])
-        if entries["activities"]["status"] in ("unresolved", "verify"):
+        if entries["activities"]["status"] == "fixed":
+            activity = entries["activities"]["value"]
+        elif entries["activities"]["status"] in ("unresolved", "verify"):
             activity = ""
         if place or activity or transport:
             result.append({"date": when.isoformat(), "place": place, "transport": transport, "activity": activity})
