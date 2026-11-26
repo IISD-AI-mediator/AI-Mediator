@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: iisd-travel-mediator
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: waitress-serve --listen=0.0.0.0:$PORT --threads=8 travel_app.wsgi:app
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.9
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ROOM_CREATE_CODE
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: COOKIE_SECURE
+        value: "1"
+      - key: ROOM_LIMIT
+        value: "20"
