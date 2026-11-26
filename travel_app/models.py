@@ -196,30 +196,44 @@ def restaurant_match(excerpt, context):
     anchor = "(?:" + "|".join(map(re.escape, locations)) + ")"
     food = "(?:" + "|".join(map(re.escape, foods)) + ")"
     branch = rf"(?:{anchor}\s*(?:(?:인근|근처|주변)\s*)?(?:지점|매장|본점)?(?:에서만|에서는|에서)?\s*)?"
-    predicate = r"(?:판매|제공|취급)(?:합니다|한다|해요|하고|하는|하며|되는|됩니다|\s*중)|팝니다|판다|팔아요|먹을 수 있|주문(?:이|\s*할\s*수)?\s*(?:가능|있)|있(?:다|어요|습니다|는)"
-    serving = re.compile(rf"{food}\s*(?:메뉴|요리)?(?:을|를|은|는|이|가|도|만|로)?\s*{branch}(?:{predicate})|\b(?:serves?|offers?|sells?)\s+{food}", re.I)
+    exists = r"있(?:습니다|어요|다)"
+    predicate = (rf"(?:판매|제공|취급)(?:합니다|한다|해요|됩니다|된다|하고\s*{exists}|\s*중(?:입니다|이에요|이다)?)|"
+                 rf"팝니다|판다|팔아요|팔고\s*{exists}|(?:먹을\s*수|주문할\s*수)\s*{exists}|"
+                 rf"주문(?:이)?\s*가능(?:합니다|해요|하다)|{exists}")
+    # The dish must be the object of a completed availability assertion.
+    # A relative verb such as '판매하는' only introduces a noun; later words
+    # can identify a different branch as the sole seller.
+    serving = re.compile(rf"(?:{food}\s*(?:메뉴|요리)?(?:을|를|은|는|이|가|도|만|로)?\s*{branch}"
+                         rf"(?:(?:현재|상시)\s*)?(?:{predicate})|\b(?:serves?|offers?|sells?)\s+{food})\s*$", re.I)
     direct = re.compile(rf"^(?:(?:이\s*식당|이곳|여기|해당\s*(?:식당|지점))(?:은|는|에서|에서는)?\s*)?(?:{food}|(?:it\s+)?(?:serves?|offers?|sells?)\b)", re.I)
-    named_branch = re.compile(r"([가-힣A-Za-z0-9-]+)\s*(?:지점|분점|본점|매장|\bbranch\b)|([가-힣A-Za-z0-9-]{2,})점(?:에서|은|는)|([가-힣A-Za-z0-9-]{2,})(?:에서만|에서는)", re.I)
+    named_branch = re.compile(r"([가-힣A-Za-z0-9-]+)\s*(?:지점|분점|본점|매장|\bbranch\b)|"
+                              r"([가-힣A-Za-z0-9-]{2,})점(?=에서|에선|은|는|이|가|만|뿐|에|\s|$)|"
+                              r"([가-힣A-Za-z0-9-]{2,})(?:에서만|에서는|에선)", re.I)
     location_names = {re.sub(r"(?:역|지점|점)$", "", w) for w in locations}
-    neutral = {"이", "그", "해당", "인근", "근처", "주변", "여기", "이곳", "가게", "식당", "매장", "지점", "음식점"}
-    previous_venue = False
+    neutral = {"이", "그", "해당", "인근", "근처", "주변", "여기", "이곳", "가게", "식당", "매장", "지점", "음식점", "음식"}
+    previous_venue, previous_dish, confirmed = False, False, False
     for sentence in re.split(r"(?<=\?)|[.!;\n,]|하지만|그러나|반면|한편", excerpt.casefold()):
         sentence = sentence.strip()
         if not sentence:
             continue
         if sentence.endswith("?"):
-            previous_venue = False
+            previous_venue, previous_dish = False, False
             continue
         named = [next(v for v in match.groups() if v) for match in named_branch.finditer(sentence)]
         foreign = any(n not in neutral and re.sub(r"(?:역|지점|점)$", "", n) not in location_names for n in named)
         here = bool(re.search(anchor, sentence))
+        mentions_dish = bool(re.search(food, sentence))
+        exclusive = re.search(r"(?:점|매장|식당|가게)(?:에서|에)?(?:만|뿐)|only\s+(?:at|in)", sentence)
+        if foreign and exclusive and (mentions_dish or previous_dish):
+            return False
         if not foreign and serving.search(sentence) and (here or previous_venue and direct.match(sentence)):
-            return True
+            confirmed = True
         # An unqualified next sentence can describe the same named restaurant.
         # Explicit switches of branch or an exclusive different menu end that scope.
-        previous_venue = bool(here and not foreign and re.search(r"식당|지점|음식점|매장|가게|레스토랑|restaurant|branch", sentence)
+        previous_venue = bool(here and not foreign and re.search(r"(?:식당|지점|음식점|매장|가게|레스토랑|본점)(?:입니다|이에요|예요|이다|임)$", sentence)
                               and not re.search(r"만\s*(?:판매|제공|취급|팝니다)", sentence))
-    return False
+        previous_dish = mentions_dish
+    return confirmed
 
 
 def located_venue(excerpt, destination):
