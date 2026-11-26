@@ -212,11 +212,11 @@ class Store:
         with self.connection() as db:
             return [row[0] for row in self.execute(db, "SELECT invite FROM travel_rooms WHERE wakeup<=? ORDER BY wakeup LIMIT 12", (time.time(),))]
 
-    def claim(self, invite):
+    def claim(self, invite, expected=None):
         def acquire(room):
             now = time.time()
             due_at = wakeup(room)
-            if due_at is None or due_at > now:
+            if due_at is None or due_at > now or (expected is not None and room["step"] != expected):
                 return None
             floor = room["floor"]
             if room["mode"] == "fight" and floor and not floor["closed"] and now >= floor["deadline"]:
