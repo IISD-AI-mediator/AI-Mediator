@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: free
     region: singapore
-    branch: feat/jskim
+    branch: develop
     buildCommand: >-
       pip install -r requirements.txt && python scripts/check_live_providers.py
     startCommand: waitress-serve --listen=0.0.0.0:$PORT --threads=8 travel_app.wsgi:app
@@ -12,6 +12,7 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.13.9
+      # Only this release's builds send the three sample provider requests.
       - key: PROVIDER_CHECK_VERSION
         value: 1.0.1
       - key: GEMINI_API_KEY

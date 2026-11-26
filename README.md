@@ -1,6 +1,6 @@
 # 동행 · AI 여행 조율
 
-[동행 웹앱 열기](https://iisd-travel-mediator-bogc.onrender.com) · [v1.0.0 릴리스](https://github.com/IISD-AI-mediator/AI-Mediator/releases/tag/v1.0.0)
+[동행 웹앱 열기](https://iisd-travel-mediator-bogc.onrender.com) · [v1.0.1 릴리스](https://github.com/IISD-AI-mediator/AI-Mediator/releases/tag/v1.0.1)
 
 여행을 함께 갈 사람들이 예산과 일정, 꼭 지키고 싶은 조건을 각자의 에이전트에게 맡기는 웹앱이다. 방장이 확정한 항공편은 그대로 두고, 숙소 위치나 현지 교통처럼 아직 열려 있는 선택지를 함께 조율할 수 있다. 중앙대학교 Interactive Intelligent System Design 팀 프로젝트로 개발했다.
 
@@ -18,7 +18,7 @@
 Anaconda PowerShell Prompt에서 저장소 루트로 이동한 뒤 실행한다. 처음 한 번 환경을 생성한다.
 
 ```powershell
-git switch feat/jskim
+git switch develop
 conda env create -f environment.yml
 conda activate iisd
 python --version
@@ -65,6 +65,8 @@ PC에서 `http://127.0.0.1:8000`을 연다. 두 참가자를 시험할 때는 �
 4명이 한 여행방을 끝까지 사용하는 것을 1회로 놓고 20회를 가정했다. Render 무료 웹 서비스와 무료 PostgreSQL의 해당 사용 한도 안에서 호스팅·DB 요금은 **$0**이다. 무료 서버는 15분간 요청이 없으면 잠들고 첫 요청 시 깨어난다. 무료 PostgreSQL은 만든 날부터 30일 뒤 만료된다. [Render 무료 플랜](https://render.com/docs/free)
 
 Render Hobby의 기본 빌드 파이프라인 제공량은 월 500분이다. 3분 걸리는 배포를 10번 하면 약 30분을 사용한다. 팀원이 이미 배포한 링크에서 여행방을 이용하는 횟수는 배포 횟수에 포함되지 않는다. [빌드 시간과 한도](https://render.com/docs/build-pipeline)
+
+배포 버전과 `PROVIDER_CHECK_VERSION`이 일치하는 빌드에서는 개인 모델과 결정 모델에 짧은 요청을 한 번씩 보내고, 박물관 공식 사이트를 찾는 Google 검색을 한 번 실행한다. 해당 세 호출은 아래 사용자 시험 추정에 별도로 더해진다. Render 빌드 로그의 `Provider check` 줄에서 모델 응답과 검색 출처 제공 여부를 확인할 수 있다.
 
 2026년 11월 단가로 아래의 유료 Gemini 사용량을 가정하면 **20회 합계 약 $0.25~$1.25**다. 모델 과금용 출력 토큰에는 추론 토큰도 포함한다. 실제 토큰 수, 재시도, 파이트 횟수에 따라 달라진다.
 

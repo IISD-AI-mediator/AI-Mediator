@@ -2,13 +2,15 @@ name: Verify and release the travel app
 
 on:
   push:
-    branches: [feat/jskim]
+    branches: [feat/jinseo, develop]
     paths:
       - VERSION
       - 'travel_app/**'
       - 'tests/**'
       - requirements.txt
       - '.github/workflows/verify-release.yml'
+  pull_request:
+    branches: [develop]
   workflow_dispatch:
 
 permissions:
@@ -60,7 +62,7 @@ jobs:
   publish:
     needs: windows
     if: >-
-      github.event_name == 'push' && startsWith(github.event.head_commit.message, 'chore(release): publish v')
+      github.event_name == 'push' && github.ref == 'refs/heads/develop' && startsWith(github.event.head_commit.message, 'chore(release): publish v')
     runs-on: ubuntu-latest
     permissions:
       contents: write

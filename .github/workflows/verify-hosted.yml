@@ -2,7 +2,7 @@ name: Check the published travel app
 
 on:
   push:
-    branches: [feat/jskim]
+    branches: [develop]
     paths: [VERSION, '.github/workflows/verify-hosted.yml']
   workflow_dispatch:
 

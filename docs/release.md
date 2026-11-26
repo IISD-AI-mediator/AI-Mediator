@@ -1,14 +1,13 @@
-# 동행 v1.0.0
+# 동행 v1.0.1
 
-여행방에 팀원을 초대하고 각자의 일정, 예산, 이동 수단과 필수 조건을 제출하면 개인 에이전트와 결정자가 공동 여행안을 작성한다.
+이 버전은 여행방의 항공 운임과 식당 검색에서 출처를 해석하는 방식을 수정한다.
 
-* 방장은 확정된 계획과 중재자의 성격을 설정한다. 참여자들은 초대 링크로 접속해 개인 의견과 에이전트의 말투를 정한다.
-* 전원이 준비하면 LangGraph가 개인별 제안을 병렬로 수집한다. 필요할 때 검색 에이전트가 출처와 확인 시각을 기록한다.
-* 의견이 갈리면 단체 채팅이 열린다. 참여자는 자기 에이전트에게 추가 지시를 보내고, 결정자는 잠정 결정을 수정하거나 양립할 수 없는 조건을 미합의로 기록한다.
-* 최종 화면에서 고정 조건, 결정 이유, 일자별 일정과 추가 확인할 정보를 확인할 수 있다. 활동·숙소의 출처가 목적지를 뒷받침할 때만 세부 장소를 확정한다.
+* 같은 노선·날짜·시간대·통화의 운임이라도 인원과 왕복 조건이 분명해야 ‘1인 왕복 운임’으로 표시한다. 2인 합산 금액, 편도 요금, 조건을 확인할 수 없는 인용은 ‘확인 필요’로 표시한다.
+* 요청한 숙소 인근 지점이 해당 메뉴를 판매한다는 근거를 확인한다. 다른 지점에서만 판매하는 메뉴는 여행방에서 확인된 식당 정보로 쓰지 않는다.
+* 이전 버전에서 만든 방을 다시 열 때도 저장된 출처를 바탕으로 공개할 검색 정보를 판단한다.
 
-Windows에서는 저장소 최상위에서 `conda env create -f environment.yml`, `conda activate iisd`를 차례로 실행한다. PowerShell에 `GEMINI_API_KEY`를 설정한 뒤 `python -m travel_app`으로 시작하면 `http://127.0.0.1:8000`에서 열 수 있다.
+로컬 회귀 시험 15개가 통과했다. 별도로 v1.0.0에서 만든 방을 두 번 다시 열어, 2인 총액은 숨겨지고 출처가 있는 1인 왕복 73만 원은 유지되는 것을 확인했다. 운임과 식당의 출처에는 고정된 시험 응답을 사용했다. [회귀 시험 코드](https://github.com/IISD-AI-mediator/AI-Mediator/blob/v1.0.1/tests/test_quote_and_branch_conditions.py)
 
-4인 여행방 20개에서 즉시 합의와 파이트 후 합의를 각각 10회 확인했다. 이 통합 시험은 실제 Flask·LangGraph·SQLite에 고정된 Gemini·검색 응답을 연결해 실행했다.
+Windows용 Conda 환경은 `iisd`, Python은 3.13이다. 실행 방법, 화면 흐름과 모델 사용 비용은 README에 정리했다. 기존 `v1.0.0` 태그와 릴리스는 당시 배포한 커밋을 가리킨다.
 
-[실행 방법과 비용](https://github.com/IISD-AI-mediator/AI-Mediator/blob/v1.0.0/README.md) · [LangGraph 이미지](https://github.com/IISD-AI-mediator/AI-Mediator/blob/v1.0.0/docs/langraph/travel-graph.png) · [검증 기록](https://github.com/IISD-AI-mediator/AI-Mediator/blob/v1.0.0/docs/test/group-travel.md)
+[동행 웹앱](https://iisd-travel-mediator-bogc.onrender.com) · [실행 방법과 아키텍처](https://github.com/IISD-AI-mediator/AI-Mediator/blob/v1.0.1/README.md) · [LangGraph 이미지](https://github.com/IISD-AI-mediator/AI-Mediator/blob/v1.0.1/docs/langraph/travel-graph.png) · [이전 릴리스](https://github.com/IISD-AI-mediator/AI-Mediator/releases/tag/v1.0.0)

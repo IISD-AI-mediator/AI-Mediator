@@ -1,8 +1,11 @@
 """Check the release's real Gemini adapters on an explicitly selected Render build."""
 
+import json
 import os
+import re
 import sys
 from pathlib import Path
+from urllib.error import HTTPError
 from urllib.parse import urlsplit
 
 
@@ -26,6 +29,19 @@ def check_search(client):
     return bool(grounding.get("webSearchQueries")) and any(urlsplit(url).scheme == "https" for url in sources)
 
 
+def provider_error(error):
+    cause = error.__context__
+    if not isinstance(cause, HTTPError):
+        return str(error)
+    try:
+        details = json.load(cause).get('error', {})
+        codes = [details.get('status')] + [d.get('reason') for d in details.get('details', []) if isinstance(d, dict)]
+        codes = [code for code in codes if isinstance(code, str) and re.fullmatch('[A-Z_]{3,64}', code)]
+    except (ValueError, AttributeError, TypeError, OSError):
+        codes = []
+    return ' '.join([f'HTTP {cause.code}', *codes])
+
+
 def main():
     version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
     if os.environ.get("PROVIDER_CHECK_VERSION") != version:
@@ -38,8 +54,7 @@ def main():
         try:
             status = 'verified' if check(client) else 'unconfirmed_response'
         except ModelError as error:
-            # The adapter's message is safe for users and excludes credentials and raw response bodies.
-            status = 'unavailable: ' + str(error)
+            status = 'unavailable: ' + provider_error(error)
         print(f'Provider check {version} {label} {client.model} {status}', flush=True)
 
 
