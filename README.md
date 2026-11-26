@@ -1,5 +1,7 @@
 # 동행 · AI 여행 조율
 
+[동행 웹앱 열기](https://iisd-travel-mediator-bogc.onrender.com) · [v1.0.0 릴리스](https://github.com/IISD-AI-mediator/AI-Mediator/releases/tag/v1.0.0)
+
 여행을 함께 갈 사람들이 예산과 일정, 꼭 지키고 싶은 조건을 각자의 에이전트에게 맡기는 웹앱이다. 방장이 확정한 항공편은 그대로 두고, 숙소 위치나 현지 교통처럼 아직 열려 있는 선택지를 함께 조율할 수 있다. 중앙대학교 Interactive Intelligent System Design 팀 프로젝트로 개발했다.
 
 ## 여행방 사용 방법
