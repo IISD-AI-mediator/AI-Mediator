@@ -9,7 +9,7 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
-from .domain import AGENT_STYLES, MEDIATOR_STYLES, Problem, choice, conditions, plain, profile, request_key
+from .domain import AGENT_STYLES, MEDIATOR_STYLES, Problem, conditions, create_roles, persona, plain, profile, request_key
 
 
 def digest(value):
@@ -52,7 +52,8 @@ def event(room, kind, actor, text, topic=""):
 
 
 def wakeup(room):
-    if room["mode"] in ("waiting", "done", "error"):
+    if room["mode"] in ("done", "error") or (room["mode"] == "waiting" and
+            not (room["step"] == "team" and room.get("roles_status") == "pending")):
         return None
     return max(room["next_at"], room["lease"]["until"] if room["lease"] else 0)
 
@@ -107,7 +108,14 @@ class Store:
         row = self.execute(db, "SELECT payload FROM travel_rooms WHERE invite=?" + suffix, (invite,)).fetchone()
         if not row:
             raise Problem("초대 링크에 해당하는 방을 찾을 수 없어요.", 404)
-        return json.loads(row[0])
+        room = json.loads(row[0])
+        room["mediator"] = persona(room["mediator"], MEDIATOR_STYLES, "mediator")
+        if "roles" not in room:
+            room["roles"] = create_roles(room["fixed"], room["capacity"])
+        for m in room["members"]:
+            if m["profile"]:
+                m["profile"]["persona"] = persona(m["profile"]["persona"], AGENT_STYLES, "persona")
+        return room
 
     def read(self, invite):
         with self.connection() as db:
@@ -128,14 +136,17 @@ class Store:
         if type(size) is not int or not 2 <= size <= 8:
             raise Problem("방장 포함 2~8명으로 정해 주세요.", field="capacity")
         fixed = conditions(data.get("fixed", {}))
-        mediator = choice(data.get("mediator", MEDIATOR_STYLES[0]), MEDIATOR_STYLES, "mediator")
+        mediator = persona(data.get("mediator", MEDIATOR_STYLES[0]), MEDIATOR_STYLES, "mediator")
         sig = fingerprint([name, size, fixed, mediator])
         with self.transaction() as db:
             if self.postgres:
                 db.execute("SELECT id FROM travel_creation_lock WHERE id=1 FOR UPDATE")
             row = self.execute(db, "SELECT invite,payload FROM travel_rooms WHERE create_hash=?", (digest(key),)).fetchone()
             if row:
-                if json.loads(row[1])["members"][0]["signature"] != sig:
+                existing = json.loads(row[1])
+                equivalent = [existing["members"][0]["name"], existing["capacity"], existing["fixed"],
+                              persona(existing["mediator"], MEDIATOR_STYLES, "mediator")]
+                if fingerprint(equivalent) != sig:
                     raise Problem("같은 전송 번호로 다른 방을 만들 수 없어요.", 409)
                 return row[0], credential(row[0], key)
             if db.execute("SELECT count(*) FROM travel_rooms").fetchone()[0] >= self.room_limit:
@@ -145,9 +156,10 @@ class Store:
                     "seats": list(range(1, size + 1)), "members": [new_member(invite, key, name, 1, sig)],
                     "mode": "waiting", "step": "team", "revision": 0, "round": 0,
                     "next_at": 0, "lease": None, "attempts": 0, "retries": 0, "error": None,
-                    "events": [], "history": [], "proposals": {}, "result": None, "floor": None}
-            self.execute(db, "INSERT INTO travel_rooms(invite,create_hash,payload,wakeup) VALUES(?,?,?,NULL)",
-                         (invite, digest(key), json.dumps(room, ensure_ascii=False)))
+                    "events": [], "history": [], "proposals": {}, "result": None, "floor": None,
+                    "roles": create_roles(fixed, size), "roles_status": "pending"}
+            self.execute(db, "INSERT INTO travel_rooms(invite,create_hash,payload,wakeup) VALUES(?,?,?,?)",
+                         (invite, digest(key), json.dumps(room, ensure_ascii=False), wakeup(room)))
         return invite, credential(invite, key)
 
     def join(self, invite, data, current):
@@ -255,15 +267,17 @@ class Store:
 def view(room, token):
     me = member_for(room, token)
     public = {"invite": room["invite"], "capacity": room["capacity"], "fixed": room["fixed"],
-              "mediator": room["mediator"], "joined": len(room["members"]),
+              "joined": len(room["members"]),
               "ready": sum(m["ready"] for m in room["members"]), "member": None}
     if not me:
         public["can_join"] = room["mode"] == "waiting" and public["joined"] < room["capacity"]
         return public
+    public["mediator"] = room["mediator"]
     public.update({key: room[key] for key in ("mode", "round", "events", "history", "result", "error")})
     public["server_time"] = time.time()
     public["members"] = [{k: m[k] for k in ("seat", "name", "ready")} for m in room["members"]]
     public["member"] = {k: me[k] for k in ("seat", "name", "ready", "profile")}
+    public["member"]["agent"] = room["roles"][str(me["seat"])]
     public["member"]["notes"] = [
         {"seq": n["seq"], "text": n["text"], "round": n["round"], "handled": n["seq"] <= me["handled"]}
         for n in me["notes"]]

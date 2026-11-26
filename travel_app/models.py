@@ -117,10 +117,13 @@ def flight_quote(text, context):
             "origin": parts["출발지"], "destination": parts["도착지"], "dates": dates, "terms": fare[:180]}
 
 
-def public_context(kind, fixed, preferences):
+def public_context(kind, fixed, preferences, inferred=None):
     context = {}
+    inferred = inferred or {}
     for key in SEARCH_FIELDS[kind]:
-        value = fixed.get(key, preferences.get(key, {}).get("value"))
+        value = fixed.get(key, inferred.get(key, preferences.get(key, {}).get("value")))
+        if kind == "flight" and key == "budget" and value is None and inferred.get("currency"):
+            context["currency"] = inferred["currency"]
         if value is not None:
             if kind == "flight" and key == "budget":
                 context["currency"] = value["currency"]
@@ -129,10 +132,22 @@ def public_context(kind, fixed, preferences):
     return context
 
 
+def restaurant_match(excerpt, context):
+    if re.search(r"확인(?:할 수 없|되지 않|이 필요|이 어렵| 불가)|미확인|불확실|불분명|제공하지 않|찾(?:을 수 없|지 못)|정보.{0,6}없|있을 수 있|추정|가능성", excerpt):
+        return False
+    def terms(value):
+        return [w for w in re.findall(r"[가-힣A-Za-z0-9]{2,}", str(value).casefold())
+                if w not in ("근처", "주변", "메뉴", "식당", "제공", "제공하는", "이내", "걸어서", "있는")]
+    location, cuisine = terms(context["lodging"]), terms(context["food"])
+    cleaned = excerpt.casefold()
+    return bool(location and cuisine and any(w in cleaned for w in location) and any(w in cleaned for w in cuisine))
+
+
 def grounded_search(adapter, kind, context):
     result = {"kind": kind, "field": SEARCH_TOPICS[kind], "status": "verify", "sources": [],
               "checked_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-              "reason": "조건에 맞는 출처를 확인하지 못했어요.", "entry": ""}
+              "reason": "조건에 맞는 출처를 확인하지 못했어요.", "entry": "",
+              "destination": context.get("destination", "")}
     if kind == "flight" and not all(context.get(k) for k in ("origin", "destination", "dates", "departure_time", "currency")):
         result["reason"] = "노선·날짜·출발 시간대·통화를 모두 알아야 운임을 비교할 수 있어요."
         return result
@@ -172,13 +187,14 @@ def grounded_search(adapter, kind, context):
             if kind == "flight" and not re.fullmatch(r"[\w.-]+\.[A-Za-z]{2,}", title):
                 title = "항공 운임 조회 출처"
             item = {"title": title, "url": url,
-                    "excerpt": excerpt[:650] if kind != "flight" else "", "quote": observed}
+                    "excerpt": excerpt[:650] if kind != "flight" else "", "quote": observed,
+                    "matched": restaurant_match(excerpt, context) if kind == "restaurant" else bool(observed) if kind == "flight" else True}
             result["sources"].append(item)
             if len(result["sources"]) >= 6:
                 break
         if len(result["sources"]) >= 6:
             break
-    supported = bool(result["sources"]) and (kind != "flight" or any(s["quote"] for s in result["sources"]))
+    supported = any(s["matched"] for s in result["sources"])
     if supported:
         result.update(status="observed", reason="출처와 조회 시각을 기록했어요.")
     elif kind == "flight":

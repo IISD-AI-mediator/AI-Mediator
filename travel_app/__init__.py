@@ -102,7 +102,9 @@ def create_app(config=None, *, member_model=None, mediator_model=None):
         code = body.get("team_code", "")
         if c["ROOM_CREATE_CODE"] and (not isinstance(code, str) or not hmac.compare_digest(code.encode(), c["ROOM_CREATE_CODE"].encode())):
             raise Problem("팀에서 공유한 방 개설 코드를 확인해 주세요.", 403, "team_code")
-        return joined(*store.create(body))
+        created = store.create(body)
+        runner.wake.set()
+        return joined(*created)
 
     @app.get("/api/rooms/<invite>")
     def state(invite):

@@ -14,6 +14,8 @@ FIELDS = [
     field("dates", "여행 날짜", "dates"),
     field("budget", "1인 예산 상한", "money"),
     field("transport", "장거리 이동", "select", options=("항공", "기차", "버스", "자동차", "선박", "도보·자전거")),
+    field("flight_schedule", "항공편 일정", "schedule", hint="예: 가는 편 KE721, 5월 3일 인천 09:00 → 오사카 10:50. 오는 편은 마지막 날 저녁."),
+    field("local_transport", "현지 이동수단", "select", options=("대중교통", "택시", "렌터카", "도보·자전거", "혼합 이용")),
     field("departure_time", "출발 시간대", "select", options=("새벽", "오전", "오후", "저녁", "심야")),
     field("lodging", "숙소 위치", hint="예: 난바역에서 걸어서 10분 이내"),
     field("food", "음식·식당", hint="예: 채식 메뉴를 제공하는 식당"),
@@ -25,6 +27,7 @@ CURRENCIES = ("KRW", "JPY", "USD", "EUR", "CNY", "GBP", "THB", "VND")
 PRIORITIES = ("prefer", "important", "must")
 AGENT_STYLES = ("차분한 분석가", "다정한 협상가", "당당한 대변인")
 MEDIATOR_STYLES = ("균형 잡힌 진행자", "다정한 진행자", "간결한 진행자")
+AXES = ("aggression", "politeness", "mz")
 
 
 class Problem(Exception):
@@ -56,6 +59,30 @@ def request_key(value):
     return value
 
 
+def persona(value, presets, field_name):
+    if isinstance(value, str):
+        value = {"preset": value}
+    if not isinstance(value, dict):
+        raise Problem("에이전트의 성격과 말투 설정을 확인해 주세요.", field=field_name)
+    result = {"preset": choice(value.get("preset", presets[0]), presets, field_name),
+              "instruction": plain(value.get("instruction", ""), 180, field_name, required=False)}
+    for key in AXES:
+        score = value.get(key, 5)
+        if type(score) is not int or not 0 <= score <= 10:
+            raise Problem("공격성·예의·MZ 감성은 각각 0~10 사이 정수로 정해 주세요.", field=field_name)
+        result[key] = score
+    return result
+
+
+def create_roles(fixed, capacity):
+    # Real agent definitions exist as part of the create transaction, including
+    # while the optional model refinement is pending or unavailable.
+    open_fields = [key for key in BY_KEY if key not in fixed] or list(BY_KEY)
+    return {str(seat): {"seat": seat, "agent_id": f"agent-{seat}", "focus": open_fields[(seat-1) % len(open_fields)],
+                       "mission": f'{BY_KEY[open_fields[(seat-1) % len(open_fields)]]["label"]} 제안을 비교하고 이 여행자의 필수 조건을 대변해요.',
+                       "fixed_fields": list(fixed)} for seat in range(1, capacity + 1)}
+
+
 def value_for(key, value):
     item = BY_KEY[key]
     kind = item["kind"]
@@ -76,6 +103,8 @@ def value_for(key, value):
         return {"amount": amount, "currency": choice(value.get("currency"), CURRENCIES, key)}
     if kind == "select":
         return choice(value, item["options"], key)
+    if kind == "schedule":
+        return plain(value, 400, key)
     return plain(value, 160, key)
 
 
@@ -101,7 +130,7 @@ def conditions(data, fixed=None):
 def profile(data, fixed):
     return {"preferences": conditions(data.get("preferences", {}), fixed),
             "extra": plain(data.get("extra", ""), 600, "extra", required=False),
-            "persona": choice(data.get("persona", AGENT_STYLES[0]), AGENT_STYLES, "persona")}
+            "persona": persona(data.get("persona", AGENT_STYLES[0]), AGENT_STYLES, "persona")}
 
 
 def display(value):

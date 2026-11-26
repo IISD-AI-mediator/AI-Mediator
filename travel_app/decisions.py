@@ -12,6 +12,8 @@ def private_texts(room):
     for member in room["members"]:
         if member["profile"] and member["profile"]["extra"]:
             texts.append(member["profile"]["extra"])
+        if member["profile"] and isinstance(member["profile"]["persona"], dict):
+            texts.append(member["profile"]["persona"].get("instruction", ""))
         texts.extend(n["text"] for n in member["notes"])
     return texts
 
@@ -39,8 +41,8 @@ def generated_value(key, value, private=()):
         result = value_for(key, value)
     except (Problem, TypeError, ValueError):
         return None
-    if isinstance(result, str) and BY_KEY[key]["kind"] == "text":
-        return safe_text(result, private, 160) or None
+    if isinstance(result, str) and BY_KEY[key]["kind"] in ("text", "schedule"):
+        return safe_text(result, private, 400 if key == "flight_schedule" else 160) or None
     return result
 
 
@@ -67,7 +69,8 @@ def public_sources(proposals):
 def policy(room, key, raw_value, private):
     if key in room["fixed"]:
         return room["fixed"][key], "fixed", "방을 만들 때 확정한 조건이에요."
-    stated = [m["profile"]["preferences"][key] for m in room["members"] if key in m["profile"]["preferences"]]
+    stated = [m["profile"]["preferences"][key] for m in room["members"] if key in m["profile"]["preferences"]
+              and key not in room["proposals"].get(str(m["seat"]), {}).get("overrides", [])]
     proposals = [p["values"][key] for p in room["proposals"].values() if key in p.get("values", {})]
     needs = distinct(p["value"] for p in stated + proposals if p["priority"] == "must")
     value = generated_value(key, raw_value, private)
@@ -87,7 +90,7 @@ def policy(room, key, raw_value, private):
         return needs[0], "agreed", "참여자가 꼭 지켜야 한다고 정한 조건을 우선했어요."
     # A personal agent may explicitly yield a soft preference during debate.
     important = distinct(p["value"] for p in proposals if p["priority"] == "important")
-    if len(important) == 1 and any(value == p["value"] and p["priority"] == "prefer" for p in stated) and value != important[0]:
+    if len(important) == 1 and value != important[0]:
         return important[0], "agreed", "일반 선호보다 높은 중요도로 제출한 조건을 우선했어요."
     if value is None:
         return None, "verify", "구체적인 값을 확인할 정보가 더 필요해요."
@@ -125,10 +128,10 @@ def decide(room, raw):
                         "reason": reason or safe_text(entry.get("reason"), private) or "제안과 중요도를 함께 검토했어요."}
     return {"round": room["round"], "entries": entries,
             "conflicts": [k for k in BY_KEY if k in conflicts],
-            "evidence": evidence, "itinerary": itinerary(entries, raw.get("itinerary"), private)}
+            "evidence": evidence, "itinerary": itinerary(entries, raw.get("itinerary"), private, evidence)}
 
 
-def itinerary(entries, rows, private):
+def itinerary(entries, rows, private, evidence=()):
     dates = entries["dates"]
     if not dates["value"] or dates["status"] not in ("fixed", "agreed") or not isinstance(rows, list):
         return []
@@ -150,11 +153,18 @@ def itinerary(entries, rows, private):
         destination = entries["destination"]
         if destination["status"] not in ("agreed", "fixed"):
             place = ""
-        elif destination["value"] and (not place or (destination["value"] not in place and row.get("base") != destination["value"])):
-            place = destination["value"]
-        if entries["transport"]["status"] in ("fixed", "agreed"):
-            transport = display(entries["transport"]["value"])
-        if entries["activities"]["status"] == "fixed":
+        elif destination["value"] and place != destination["value"]:
+            verified = place and row.get("base") == destination["value"] and any(
+                e.get("destination") == destination["value"] and e["status"] == "observed" and
+                any(s.get("matched", True) and place in s.get("excerpt","") for s in e["sources"]) for e in evidence)
+            if not verified:
+                place = destination["value"]
+        local = entries.get("local_transport", {})
+        if local.get("status") in ("fixed", "agreed"):
+            transport = display(local["value"])
+        elif local.get("status") == "unresolved":
+            transport = ""
+        if entries["activities"]["status"] in ("fixed", "agreed"):
             activity = entries["activities"]["value"]
         elif entries["activities"]["status"] in ("unresolved", "verify"):
             activity = ""
