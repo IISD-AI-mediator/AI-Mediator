@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="각자의 여행 조건을 모으고 개인 에이전트와 함께 하나의 여행안을 정해요.">
+  <title>동행 · AI 여행 조율</title>
+  <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
+  <script type="module" src="{{ url_for('static',filename='app.js') }}"></script>
+</head>
+<body>
+  <a class="skip" href="#main">본문 바로가기</a>
+  <header class="top"><div class="top-inner">
+    <a class="brand" href="/" aria-label="동행 처음 화면"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>동행</span></a>
+    <button class="quiet" id="help" type="button"><span class="help-symbol" aria-hidden="true">?</span> 사용법</button>
+  </div></header>
+  <div id="connection" role="status" hidden></div>
+  <main id="main" tabindex="-1"></main>
+  <div id="announcer" class="sr" aria-live="polite" aria-atomic="true"></div>
+  <dialog id="guide" aria-labelledby="guide-title">
+    <div class="dialog-head"><h2 id="guide-title">동행 사용법</h2><button type="button" class="icon-btn" id="close-guide" aria-label="사용법 닫기">×</button></div>
+    <ol class="guide-steps">
+      <li><strong>여행방을 만들어요.</strong><p>함께 갈 인원과 확정한 조건을 정하고, 초대 링크를 나눠요.</p></li>
+      <li><strong>내 조건을 맡겨요.</strong><p>원하는 항목만 직접 입력해요. 방장을 포함해 모두 준비를 마치면 조율이 시작돼요.</p></li>
+      <li><strong>조율 과정을 함께 봐요.</strong><p>의견이 갈리면 파이트 모드가 열려요. 내 에이전트에게만 추가 지시를 보낼 수 있어요.</p></li>
+      <li><strong>최종 여행안을 확인해요.</strong><p>결정한 일정과 근거, 아직 확인해야 할 항목이 한곳에 모여요.</p></li>
+    </ol><button type="button" class="button primary full" id="guide-done">알겠어요</button>
+  </dialog>
+  <script id="setup" type="application/json">{{ setup|tojson }}</script>
+  <noscript>여행방을 열려면 브라우저의 자바스크립트를 켜 주세요.</noscript>
+</body>
+</html>

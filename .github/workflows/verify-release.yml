@@ -1,0 +1,90 @@
+name: Verify and release the travel app
+
+on:
+  push:
+    branches: [feat/jinseo, develop]
+    paths:
+      - VERSION
+      - 'travel_app/**'
+      - 'tests/**'
+      - requirements.txt
+      - '.github/workflows/verify-release.yml'
+  pull_request:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13.9'
+          cache: pip
+      - name: Collect the Windows Python 3.13 dependencies
+        run: |
+          python -m pip download --only-binary=:all: --dest wheelhouse -r requirements.txt
+      - name: Install using the collected Windows wheels
+        run: python -m pip install --no-index --find-links wheelhouse -r requirements.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iisd-windows-cp313-wheels
+          path: wheelhouse/*.whl
+          retention-days: 7
+          compression-level: 0
+      - name: Run the app on Windows and exercise the room API
+        shell: python
+        run: |
+          import sys, tempfile
+          from pathlib import Path
+          sys.path.insert(0, str(Path.cwd()))
+          from travel_app import create_app
+          with tempfile.TemporaryDirectory() as folder:
+              app = create_app({'START_WORKER': False, 'DATABASE_URL': str(Path(folder) / 'check.db')})
+              client = app.test_client()
+              assert client.get('/healthz').get_json()['status'] == 'ok'
+              assert '동행' in client.get('/').get_data(as_text=True)
+              assert client.get('/api/rooms/unknown').status_code == 404
+      - name: Run the release regression suite
+        if: hashFiles('VERSION') != ''
+        shell: python
+        run: |
+          import sys, unittest
+          from pathlib import Path
+          sys.path.insert(0, str(Path.cwd()))
+          suite = unittest.defaultTestLoader.discover('tests')
+          assert suite.countTestCases() > 0, 'No release tests were discovered'
+          sys.exit(not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful())
+  publish:
+    needs: windows
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/develop' && startsWith(github.event.head_commit.message, 'chore(release): publish v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Tag the tested commit and publish its release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(tr -d '\r\n' < VERSION)
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          tag="v$version"
+          if git show-ref --verify --quiet "refs/tags/$tag"; then
+            test "$(git rev-parse "$tag^{commit}")" = "$GITHUB_SHA"
+          else
+            git tag "$tag" "$GITHUB_SHA"
+            git push origin "refs/tags/$tag"
+          fi
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --verify-tag --title "동행 $tag" --notes-file docs/release.md
+          fi
