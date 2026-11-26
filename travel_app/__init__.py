@@ -1,5 +1,6 @@
 import hmac
 import os
+import re
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -28,6 +29,15 @@ def create_app(config=None, *, member_model=None, mediator_model=None):
         raise RuntimeError("Render의 ROOM_CREATE_CODE와 지속 저장용 PostgreSQL DATABASE_URL을 설정해 주세요.")
     if c["MEMBER_MODEL"] == c["MEDIATOR_MODEL"]:
         raise RuntimeError("개인 조율자와 결정자에 서로 다른 Gemini 모델을 설정해 주세요.")
+    version_file = Path(__file__).resolve().parents[1] / "VERSION"
+    try:
+        version = version_file.read_text(encoding="utf-8").strip() or "development"
+    except FileNotFoundError:
+        version = "development"
+    release = {"status": "ok", "version": version}
+    revision = os.environ.get("RENDER_GIT_COMMIT", "")
+    if re.fullmatch(r"[0-9a-fA-F]{7,64}", revision):
+        release["revision"] = revision
     store = Store(c["DATABASE_URL"], room_limit=c["ROOM_LIMIT"])
     member = member_model or Gemini(c["GEMINI_API_KEY"], c["MEMBER_MODEL"])
     mediator = mediator_model or Gemini(c["GEMINI_API_KEY"], c["MEDIATOR_MODEL"])
@@ -86,7 +96,7 @@ def create_app(config=None, *, member_model=None, mediator_model=None):
     def health():
         with store.connection() as db:
             db.execute("SELECT 1").fetchone()
-        return jsonify(status="ok")
+        return jsonify(release)
 
     @app.get("/")
     @app.get("/r/<invite>")
