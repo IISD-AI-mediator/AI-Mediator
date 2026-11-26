@@ -3,7 +3,7 @@ name: Check the published travel app
 on:
   push:
     branches: [feat/jskim]
-    paths: ['.github/workflows/verify-hosted.yml']
+    paths: [VERSION, '.github/workflows/verify-hosted.yml']
   workflow_dispatch:
 
 permissions:
@@ -12,7 +12,7 @@ permissions:
 jobs:
   public-site:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
         with:
@@ -27,17 +27,22 @@ jobs:
 
           origin = 'https://iisd-travel-mediator-bogc.onrender.com'
           version = Path('VERSION').read_text().strip()
-          commit = subprocess.check_output(['git', 'rev-parse', f'v{version}^{{commit}}'], text=True).strip()
-          for attempt in range(4):
+          subject = subprocess.check_output(['git', 'show', '-s', '--format=%s', 'HEAD'], text=True).strip()
+          ref = 'HEAD' if subject == f'chore(release): publish v{version}' else f'v{version}^{{commit}}'
+          commit = subprocess.check_output(['git', 'rev-parse', ref], text=True).strip()
+          expected = {'status': 'ok', 'version': version, 'revision': commit}
+          deadline = time.monotonic() + 560
+          health = None
+          while time.monotonic() < deadline:
               try:
                   with urlopen(origin + '/healthz', timeout=65) as response:
                       health = json.load(response)
-                  break
+                  if health == expected:
+                      break
               except (HTTPError, URLError, TimeoutError):
-                  if attempt == 3:
-                      raise
-                  time.sleep(5)
-          assert health == {'status': 'ok', 'version': version, 'revision': commit}, health
+                  pass
+              time.sleep(10)
+          assert health == expected, (health, expected)
           print('Health, database and release commit:', health)
           for endpoint, marker in [('/', '동행'), ('/static/app.js', 'import'), ('/static/style.css', '{')]:
               with urlopen(origin + endpoint, timeout=30) as response:
