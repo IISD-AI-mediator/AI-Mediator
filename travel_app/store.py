@@ -10,6 +10,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from .domain import AGENT_STYLES, MEDIATOR_STYLES, Problem, conditions, create_roles, persona, plain, profile, request_key
+from .evidence_compat import recheck_room
 
 
 def digest(value):
@@ -115,6 +116,7 @@ class Store:
         for m in room["members"]:
             if m["profile"]:
                 m["profile"]["persona"] = persona(m["profile"]["persona"], AGENT_STYLES, "persona")
+        recheck_room(room)
         return room
 
     def read(self, invite):
@@ -274,6 +276,10 @@ def view(room, token):
         return public
     public["mediator"] = room["mediator"]
     public.update({key: room[key] for key in ("mode", "round", "events", "history", "result", "error")})
+    if public["result"] and "evidence" in public["result"]:
+        result = public["result"]
+        public["result"] = {**result, "evidence": [
+            {k: v for k, v in item.items() if k != "restaurant_criteria"} for item in result["evidence"]]}
     public["server_time"] = time.time()
     public["members"] = [{k: m[k] for k in ("seat", "name", "ready")} for m in room["members"]]
     public["member"] = {k: me[k] for k in ("seat", "name", "ready", "profile")}

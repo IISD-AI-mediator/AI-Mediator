@@ -2,6 +2,7 @@
 
 import json
 import re
+import unicodedata
 from datetime import datetime, timezone
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlsplit
@@ -81,17 +82,53 @@ SEARCH_PROMPTS = {
     "flight": ("검색 결과에서 실제로 확인된 왕복 1인 운임만 찾아라. 같은 운임의 모든 조건이 한 출처에 있을 때만 "
                "다음 순서와 표기로 한 줄을 작성해 그 문장 전체에 근거를 붙여라. 출발지=...|도착지=...|가는날=YYYY-MM-DD|"
                "오는날=YYYY-MM-DD|출발시각=HH:MM|금액=12345|통화=KRW|조건=... . "
-               "출발시각은 출발지 현지 시각이다. 금액은 해당 통화 총액이다. 왕복·세금·수하물 조건을 명시한다. "
+               "출발시각은 출발지 현지 시각이다. 금액은 성인 한 사람의 세금 포함 왕복 총액이다. "
+               "출처에 그 기준이 명시된 경우에만 조건을 '1인 왕복, 세금 포함, 위탁 수하물 1개'처럼 쓴다. "
+               "여러 명의 합계·편도·기준 불명 운임을 나누거나 왕복으로 환산하지 마라. "
                "추정치·다른 날짜의 가격은 제외하고 조건을 확인할 수 없으면 확인 필요라고 써라."),
     "restaurant": "숙소를 기준으로 요청한 음식·접근 조건에 맞는 실제 식당 이름, 위치와 메뉴 근거를 찾아 한국어로 간단히 답하라.",
     "lodging": "여행지와 숙소 위치, 접근 조건에 맞는 실제 숙소나 교통 정보를 찾아 한국어로 간단히 답하라.",
     "activity": "여행지, 희망 활동, 접근 조건에 맞는 방문 장소와 이용 정보를 찾아 한국어로 간단히 답하라.",
 }
 
+# Consume the entire cited terms field. Keywords alone cannot establish who
+# pays the quoted amount or which legs that amount covers.
+_PERSON = r"(?:성인\s*)?(?:1\s*(?:인|명)(?:당)?|한\s*(?:명|사람))(?:의|\s*기준)?"
+_RETURN = r"왕복(?:편)?"
+_BASIS = rf"(?:{_PERSON}\s*{_RETURN}|{_RETURN}\s*{_PERSON})(?:\s*(?:항공권|항공료|운임|요금|총액|총금액|가격|기준|예매가|예약가))*"
+_TAX = r"(?:제반\s*)?(?:세금|제세공과금)(?:\s*(?:및|과|와)?\s*(?:유류할증료|공항세|수수료))*\s*(?:전액\s*|모두\s*)?포함(?:됨|된\s*금액|입니다|됩니다)?"
+_ALLOWANCE = r"\d{1,3}(?:\.\d+)?\s*(?:개|점|kg|킬로그램)"
+_BAG = rf"(?:(?:위탁|기내|휴대|무료)\s*){{0,2}}수하물(?:은|는|이|가)?\s*(?:(?:{_ALLOWANCE})(?:\s*(?:각|최대)?\s*{_ALLOWANCE})?(?:\s*(?:까지|무료|포함|허용|제공))*|포함|미포함|불포함|별도|유료|없음)"
+_BOOKING = r"(?:(?:온라인|사전|현재)\s*)?(?:예약|예매|발권)(?:\s*(?:가능|기준|시|완료|필수))|(?:환불|변경)\s*(?:불가|가능)|일반석|이코노미(?:석)?"
+_FARE_CLAUSES = re.compile(rf"(?:(?P<basis>{_BASIS})|(?P<tax>{_TAX})|(?P<bag>{_BAG})|(?P<booking>{_BOOKING}))(?=\s|$)", re.I)
+
+
+def confirmed_fare_terms(fare):
+    if not isinstance(fare, str) or not 0 < len(fare) < 180:
+        return False
+    normalized = unicodedata.normalize("NFKC", fare)
+    normalized = " ".join(re.sub(r"[,;·/()\[\]]", " ", normalized).split()).strip(". ")
+    seen = set()
+    offset = 0
+    while offset < len(normalized):
+        match = _FARE_CLAUSES.match(normalized, offset)
+        if not match or (match.lastgroup in {"basis", "tax"} and match.lastgroup in seen):
+            return False
+        seen.add(match.lastgroup)
+        offset = match.end() + 1
+    return {"basis", "tax", "bag"} <= seen
+
 
 def flight_quote(text, context):
-    parts = dict((k.strip(), v.strip().rstrip(".")) for k, v in
-                 re.findall(r"(출발지|도착지|가는날|오는날|출발시각|금액|통화|조건)\s*=\s*([^|\n]+)", text))
+    parts = {}
+    for part in text.strip().rstrip(".").split("|"):
+        key, sep, val = part.partition("=")
+        key = key.strip()
+        if not sep or key in parts or not val.strip():
+            return None
+        parts[key] = val.strip()
+    if set(parts) != {"출발지","도착지","가는날","오는날","출발시각","금액","통화","조건"}:
+        return None
     dates = context.get("dates") or {}
     expected = {"출발지": context.get("origin"), "도착지": context.get("destination"),
                 "가는날": dates.get("start"), "오는날": dates.get("end"), "통화": context.get("currency")}
@@ -109,12 +146,10 @@ def flight_quote(text, context):
         matches = hour >= window[0] or hour < window[1]
     fare = parts.get("조건", "")
     amount = parts.get("금액", "").replace(",", "")
-    if (not matches or not re.fullmatch(r"[1-9]\d{0,9}", amount)
-            or not all(key in fare for key in ("왕복", "세금", "수하물"))
-            or any(word in fare for word in ("미정", "미확인", "확인 필요", "불명", "추정", "알 수 없"))):
+    if not matches or not re.fullmatch(r"[1-9]\d{0,9}", amount) or not confirmed_fare_terms(fare):
         return None
     return {"amount": int(amount), "currency": parts["통화"], "time": parts["출발시각"],
-            "origin": parts["출발지"], "destination": parts["도착지"], "dates": dates, "terms": fare[:180]}
+            "origin": parts["출발지"], "destination": parts["도착지"], "dates": dates, "terms": fare}
 
 
 def public_context(kind, fixed, preferences, inferred=None):
@@ -147,16 +182,44 @@ RESTAURANT_NEGATION = re.compile(
 
 
 def restaurant_match(excerpt, context):
-    if uncertain(excerpt) or RESTAURANT_NEGATION.search(excerpt):
+    if not isinstance(excerpt, str) or uncertain(excerpt) or RESTAURANT_NEGATION.search(excerpt):
         return False
-    if not re.search(r"제공|판매|운영|취급|팝니다|메뉴.{0,14}있|주문.{0,12}가능|먹을 수 있|선보|serves?|offers?", excerpt, re.I):
-        return False
+
     def terms(value):
-        return [w for w in re.findall(r"[가-힣A-Za-z0-9]{2,}", str(value).casefold())
-                if w not in ("근처", "주변", "메뉴", "식당", "제공", "제공하는", "이내", "걸어서", "있는")]
-    location, cuisine = terms(context["lodging"]), terms(context["food"])
-    cleaned = excerpt.casefold()
-    return bool(location and cuisine and any(w in cleaned for w in location) and any(w in cleaned for w in cuisine))
+        words = re.findall(r"[가-힣A-Za-z0-9-]{2,}", str(value or "").casefold())
+        return [re.sub(r"에서(?:부터)?$", "", w) for w in words
+                if w not in ("근처", "인근", "주변", "메뉴", "음식", "식당", "제공", "제공하는", "이내", "걸어서", "있는") and not re.fullmatch(r"\d+분", w)]
+
+    locations, foods = terms(context.get("lodging")), terms(context.get("food"))
+    if not locations or not foods:
+        return False
+    anchor = "(?:" + "|".join(map(re.escape, locations)) + ")"
+    food = "(?:" + "|".join(map(re.escape, foods)) + ")"
+    branch = rf"(?:{anchor}\s*(?:(?:인근|근처|주변)\s*)?(?:지점|매장|본점)?(?:에서만|에서는|에서)?\s*)?"
+    predicate = r"(?:판매|제공|취급)(?:합니다|한다|해요|하고|하는|하며|되는|됩니다|\s*중)|팝니다|판다|팔아요|먹을 수 있|주문(?:이|\s*할\s*수)?\s*(?:가능|있)|있(?:다|어요|습니다|는)"
+    serving = re.compile(rf"{food}\s*(?:메뉴|요리)?(?:을|를|은|는|이|가|도|만|로)?\s*{branch}(?:{predicate})|\b(?:serves?|offers?|sells?)\s+{food}", re.I)
+    direct = re.compile(rf"^(?:(?:이\s*식당|이곳|여기|해당\s*(?:식당|지점))(?:은|는|에서|에서는)?\s*)?(?:{food}|(?:it\s+)?(?:serves?|offers?|sells?)\b)", re.I)
+    named_branch = re.compile(r"([가-힣A-Za-z0-9-]+)\s*(?:지점|분점|본점|매장|\bbranch\b)|([가-힣A-Za-z0-9-]{2,})점(?:에서|은|는)|([가-힣A-Za-z0-9-]{2,})(?:에서만|에서는)", re.I)
+    location_names = {re.sub(r"(?:역|지점|점)$", "", w) for w in locations}
+    neutral = {"이", "그", "해당", "인근", "근처", "주변", "여기", "이곳", "가게", "식당", "매장", "지점", "음식점"}
+    previous_venue = False
+    for sentence in re.split(r"(?<=\?)|[.!;\n,]|하지만|그러나|반면|한편", excerpt.casefold()):
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+        if sentence.endswith("?"):
+            previous_venue = False
+            continue
+        named = [next(v for v in match.groups() if v) for match in named_branch.finditer(sentence)]
+        foreign = any(n not in neutral and re.sub(r"(?:역|지점|점)$", "", n) not in location_names for n in named)
+        here = bool(re.search(anchor, sentence))
+        if not foreign and serving.search(sentence) and (here or previous_venue and direct.match(sentence)):
+            return True
+        # An unqualified next sentence can describe the same named restaurant.
+        # Explicit switches of branch or an exclusive different menu end that scope.
+        previous_venue = bool(here and not foreign and re.search(r"식당|지점|음식점|매장|가게|레스토랑|restaurant|branch", sentence)
+                              and not re.search(r"만\s*(?:판매|제공|취급|팝니다)", sentence))
+    return False
 
 
 def located_venue(excerpt, destination):
@@ -209,6 +272,8 @@ def grounded_search(adapter, kind, context):
               "checked_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
               "reason": "조건에 맞는 출처를 확인하지 못했어요.", "entry": "",
               "destination": context.get("destination", "")}
+    if kind == "restaurant":
+        result["restaurant_criteria"] = {key: context.get(key) for key in ("lodging", "food")}
     if kind == "flight" and not all(context.get(k) for k in ("origin", "destination", "dates", "departure_time", "currency")):
         result["reason"] = "노선·날짜·출발 시간대·통화를 모두 알아야 운임을 비교할 수 있어요."
         return result
@@ -247,7 +312,7 @@ def grounded_search(adapter, kind, context):
         if kind == "flight":
             matched = bool(observed)
         elif kind == "restaurant":
-            matched = restaurant_match(excerpt, context)
+            matched = len(indices) == 1 and restaurant_match(excerpt[:650], context)
         else:
             venue = located_venue(excerpt[:650], context.get("destination")) if len(indices) == 1 else ""
             matched = bool(venue)
