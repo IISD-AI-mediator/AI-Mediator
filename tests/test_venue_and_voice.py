@@ -30,8 +30,14 @@ class VenueAndVoiceTests(unittest.TestCase):
     def test_supported_city_and_venue_are_required(self):
         cases = [
             ("도톤보리는 일본 오사카시에 위치한 관광지다.", "도톤보리", "observed", "도톤보리"),
+            ("도톤보리는 오사카에 위치해 있다.", "도톤보리", "observed", "도톤보리"),
             ("장소=난바 파크스|도시=오사카|정보=상업시설과 정원이 있다.", "난바 파크스", "observed", "난바 파크스"),
             ("제주 협재해변은 제주시 한림읍에 있습니다.", "제주 협재해변", "verify", "오사카"),
+            ("제주 협재해변은 오사카에 위치하지 않습니다. 실제 소재지는 제주시 한림읍입니다.", "제주 협재해변", "verify", "오사카"),
+            ("제주 협재해변은 오사카에 소재하지 않아요.", "제주 협재해변", "verify", "오사카"),
+            ("제주 협재해변은 오사카에 있지 않습니다.", "제주 협재해변", "verify", "오사카"),
+            ("제주 협재해변은 오사카에 위치해 있지는 않다.", "제주 협재해변", "verify", "오사카"),
+            ("장소=제주 협재해변|도시=오사카|정보=이곳은 오사카에 있지 않습니다.", "제주 협재해변", "verify", "오사카"),
             ("오사카 여행 정보를 살펴봤습니다. 제주 협재해변은 제주시 한림읍에 있습니다.", "제주 협재해변", "verify", "오사카"),
             ("도톤보리에는 산책로가 있습니다.", "도톤보리", "verify", "오사카"),
         ]
@@ -48,6 +54,18 @@ class VenueAndVoiceTests(unittest.TestCase):
                     evidence["status"] = "observed"  # Older persisted searches also pass through the current guard.
                     restored = public_sources({"1":{"evidence":[evidence]}})[0]
                     self.assertEqual(restored["status"],status)
+
+    def test_english_location_requires_an_affirmative_clause(self):
+        for kind in ("lodging", "activity"):
+            for phrase, expected in (
+                ("Dotonbori is located in Osaka.", "observed"),
+                ("Hyeopjae Beach is not located in Osaka. It is in Jeju.", "verify"),
+                ("Hyeopjae Beach isn't in Osaka.", "verify"),
+                ("It is not true that Hyeopjae Beach is in Osaka.", "verify"),
+                ("Hyeopjae Beach is located in Osaka?", "verify"),
+            ):
+                with self.subTest(kind=kind, phrase=phrase):
+                    self.assertEqual(grounded_search(CitedResponse(phrase), kind, {"destination":"Osaka"})["status"],expected)
 
     def test_mediator_preset_changes_only_public_expression(self):
         judge = Judge()

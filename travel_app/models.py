@@ -168,6 +168,13 @@ def located_venue(excerpt, destination):
     short = re.sub(r"^(?:대한민국|한국|일본|미국|프랑스|영국|중국|태국|베트남|독일|이탈리아|스페인)\s+", "", target)
     aliases = sorted({target.casefold(), short.casefold()}, key=len, reverse=True)
     city = "(?:" + "|".join(re.escape(n) for n in aliases) + ")"
+    clauses = [part.strip() for part in re.findall(r"[^.!?;\n]+[.!?;]?", excerpt)]
+    denied = re.compile(
+        r"(?:위치|소재|자리|속|있)[^.!?;\n]{0,28}?(?:지\s*(?:는|도)?\s*(?:않|못)|아니|아닙|아닌|아닐)|"
+        r"(?:안|못)\s*(?:위치|소재|자리|속하|있)|(?:아니라|아니[다며]|아닙니다)|"
+        r"\b(?:not|never|no longer|(?:is|are|was|were|does|do)n['’]t)\b", re.I)
+    if any(re.search(city, part, re.I) and denied.search(part) for part in clauses):
+        return ""
     labeled = re.search(r"(?:^|[\n;])\s*장소\s*=\s*([^|\n;]{2,90})\|\s*도시\s*=\s*([^|\n;.]{1,90})(?:[|\n;.]|$)", excerpt)
     if labeled:
         if re.fullmatch(city + r"(?:시|특별시|광역시)?", labeled[2].strip(), re.I):
@@ -178,13 +185,18 @@ def located_venue(excerpt, destination):
     address = city + r"(?:특별시|광역시|시|부)?(?:\s+[가-힣A-Za-z0-9-]{1,14}(?:구|동|군|현)){0,2}"
     country = r"(?:(?:대한민국|한국|일본|미국|프랑스|영국|중국|태국|베트남)\s+)?"
     name = r"(?P<venue>[가-힣A-Za-z0-9][가-힣A-Za-z0-9 '’·&()\-]{0,70}?)"
+    exists = r"있(?:습니다|어요|었다|었다고|다|는|고|으며|음)"
+    location = (r"(?:(?:위치|소재|자리|속)(?:해(?:\s*" + exists + r")?|합니다|한다|한|하며|하고\s*" + exists
+                + r")|자리\s*잡(?:고\s*" + exists + r"|았다|은)|" + exists + r")(?![가-힣])")
     patterns = (
-        r"^" + name + r"(?:은|는|이|가)\s*" + country + address + r"\s*에\s*(?:위치|자리|있|소재|속)",
+        r"^" + name + r"(?:은|는|이|가)\s*" + country + address + r"\s*에\s*" + location,
         r"^" + name + r"(?:은|는|이|가)\s*" + country + address + r"\s*의\s*(?:(?:대표적인|유명한|대표|인기)\s*)?(?:명소|숙소|호텔|관광지|박물관|공원|식당)",
         r"^" + country + address + r"\s*(?:의|에\s*(?:위치한|있는|자리한|자리 잡은|소재한))\s+" + name + r"(?:에서는|에서|은|는|을|를|이|가)(?:\s|$)",
         r"^" + name + r"\s+is\s+(?:located\s+)?in\s+" + city + r"\b",
     )
-    for sentence in re.split(r"[.!?;\n]", excerpt):
+    for sentence in clauses:
+        if sentence.endswith("?"):
+            continue
         for pattern in patterns:
             match = re.search(pattern, sentence.strip(), re.I)
             if match:
