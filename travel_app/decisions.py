@@ -73,7 +73,39 @@ def public_sources(proposals):
     return result
 
 
-def policy(room, key, raw_value, private):
+def activity_items(text):
+    """Recognize explicit additive lists, never treat alternatives or exclusions as plans."""
+    if not isinstance(text, str) or re.search(
+        r"또는|혹은|아니면|대신|말고|제외|금지|불가|불참|취소|택일|택\s*1|중\s*(하나|한)|"
+        r"싫|않|안\s*(?:가|갈|해|하|함)|못\s*(?:가|갈|해|하)|하지\s*말|피하|빼|없이|만(?:\s|$|[,·+&])|"
+        r"/|\b(?:or|no|not|without|avoid|only|skip|except|instead)\b", text, re.I
+    ):
+        return set()
+    parts = re.split(r"\s*(?:[,·;+&]|\s+(?:그리고|및|and)\s+|(?<=\S)(?:과|와)\s+)\s*", text, flags=re.I)
+    return {" ".join(part.casefold().split()) for part in parts if part.strip()}
+
+
+def combined_activities(needs, value, days, private):
+    required_groups = [activity_items(need) for need in needs]
+    proposed = activity_items(value)
+    if not all(required_groups) or (value and not proposed):
+        return None
+    required = set.union(*required_groups)
+    scheduled = set()
+    for day in days:
+        activity = day["activity"]
+        items = activity_items(activity)
+        if activity and not items and any(required_item in activity.casefold() for required_item in required):
+            return None
+        scheduled.update(items)
+    if required <= proposed:
+        return value
+    if required <= scheduled:
+        return generated_value("activities", " · ".join(needs), private)
+    return None
+
+
+def policy(room, key, raw_value, private, days=()):
     if key in room["fixed"]:
         return room["fixed"][key], "fixed", "방을 만들 때 확정한 조건이에요."
     stated = [m["profile"]["preferences"][key] for m in room["members"] if key in m["profile"]["preferences"]
@@ -92,6 +124,11 @@ def policy(room, key, raw_value, private):
                 value = ceiling
             return value, "agreed", "각자가 제시한 1인 예산 상한 안으로 맞췄어요."
     if len(needs) > 1:
+        if key == "activities":
+            combined = combined_activities(needs, value, days, private)
+            if combined:
+                return combined, "agreed", "제안에서 각 참여자의 필수 활동을 모두 확인했어요."
+            return None, "unresolved", "참여자의 필수 활동을 모두 담은 제안이나 일정을 확인하지 못했어요."
         return None, "unresolved", "서로 다른 필수 조건을 모두 충족할 한 가지 값을 확정할 수 없어요."
     if needs:
         return needs[0], "agreed", "참여자가 꼭 지켜야 한다고 정한 조건을 우선했어요."
@@ -109,12 +146,17 @@ def decide(room, raw):
     evidence = public_sources(room["proposals"])
     missing = {e["field"] for e in evidence if e["status"] != "observed"}
     conflicts = {k for k in (raw.get("conflicts") or []) if isinstance(k, str) and k in BY_KEY and k not in room["fixed"]}
-    entries = {}
+    entries = dict.fromkeys(BY_KEY)
     raw_entries = raw.get("entries") if isinstance(raw.get("entries"), dict) else {}
-    for key in BY_KEY:
+    # A per-day activity is evidence of a compromise only after its dates and location are checked.
+    other_fields = [key for key in BY_KEY if key != "activities"]
+    days = []
+    for key in [*other_fields, "activities"]:
+        if key == "activities":
+            days = checked_days(entries, raw.get("itinerary"), private, evidence)
         entry = raw_entries.get(key)
         entry = entry if isinstance(entry, dict) else {}
-        val, status, reason = policy(room, key, entry.get("value"), private)
+        val, status, reason = policy(room, key, entry.get("value"), private, days)
         if status == "unresolved":
             conflicts.add(key)
         if status != "fixed" and key in missing and status != "unresolved":
@@ -135,10 +177,14 @@ def decide(room, raw):
                         "reason": reason or safe_text(entry.get("reason"), private) or "제안과 중요도를 함께 검토했어요."}
     return {"round": room["round"], "entries": entries,
             "conflicts": [k for k in BY_KEY if k in conflicts],
-            "evidence": evidence, "itinerary": itinerary(entries, raw.get("itinerary"), private, evidence)}
+            "evidence": evidence, "itinerary": schedule_activities(days, entries["activities"])}
 
 
 def itinerary(entries, rows, private, evidence=()):
+    return schedule_activities(checked_days(entries, rows, private, evidence), entries["activities"])
+
+
+def checked_days(entries, rows, private, evidence):
     dates = entries["dates"]
     if not dates["value"] or dates["status"] not in ("fixed", "agreed") or not isinstance(rows, list):
         return []
@@ -159,6 +205,8 @@ def itinerary(entries, rows, private, evidence=()):
         transport = safe_text(row.get("transport"), private, 80)
         destination = entries["destination"]
         place_status = "base"
+        if not place and row.get("base") == destination["value"]:
+            place = destination["value"] or ""
         if destination["status"] not in ("agreed", "fixed"):
             place, place_status = "", "verify"
         elif destination["value"] and place != destination["value"]:
@@ -175,11 +223,22 @@ def itinerary(entries, rows, private, evidence=()):
             transport = display(local["value"])
         elif local.get("status") == "unresolved":
             transport = ""
-        if entries["activities"]["status"] in ("fixed", "agreed"):
-            activity = entries["activities"]["value"]
-        elif entries["activities"]["status"] in ("unresolved", "verify"):
+        if place_status == "verify" or row.get("base") not in (None, destination["value"]):
             activity = ""
-        if place or activity or transport:
-            result.append({"date": when.isoformat(), "place": place, "place_status": place_status,
-                           "transport": transport, "activity": activity})
+        result.append({"date": when.isoformat(), "place": place, "place_status": place_status,
+                       "transport": transport, "activity": activity})
     return sorted(result, key=lambda r: r["date"])
+
+
+def schedule_activities(days, entry):
+    approved = entry["value"] if entry["status"] in ("fixed", "agreed") else None
+    items = activity_items(approved)
+    result = []
+    for day in days:
+        activity = approved or ""
+        if len(items) > 1:
+            scheduled = activity_items(day["activity"])
+            activity = day["activity"] if scheduled and scheduled <= items else ""
+        if day["place"] or day["transport"] or activity:
+            result.append({**day, "activity": activity})
+    return result
