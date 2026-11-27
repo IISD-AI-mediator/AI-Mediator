@@ -50,7 +50,7 @@ class InProcessSession:
         return response.status_code, response.get_json()
 
 
-class RoomRecoveryTests(unittest.TestCase):
+class RoomScenario(unittest.TestCase):
     def setUp(self):
         folder = self.enterContext(tempfile.TemporaryDirectory())
         self.clock = TestClock()
@@ -71,11 +71,12 @@ class RoomRecoveryTests(unittest.TestCase):
         base_url = f"http://127.0.0.1:{server.server_port}"
         return [BrowserSession(base_url) for _ in range(3)]
 
-    def open_room(self, member, judge, *, conflict=False, host_persona=None, mediator_persona=None):
+    def open_room(self, member, judge, *, conflict=False, host_persona=None, mediator_persona=None,
+                  host_preferences=None, guest_preferences=None, fixed=None, guest_name="친구"):
         self.app = create_app(self.config, member_model=member, mediator_model=judge)
         self.host, self.guest, self.visitor = self.sessions()
         payload = {"name": "방장", "capacity": 2, "request_id": secrets.token_hex(16),
-                   "team_code": "test-team", "fixed": {"destination": "부산"}}
+                   "team_code": "test-team", "fixed": {"destination": "부산", **(fixed or {})}}
         if mediator_persona:
             payload["mediator"] = mediator_persona
         code, created = self.host.request("/api/rooms", payload)
@@ -87,13 +88,13 @@ class RoomRecoveryTests(unittest.TestCase):
         invitation = self.visitor.request(self.path)[1]
         self.assertEqual((invitation["member"], invitation["ready"], invitation["fixed"]),
                          (None, 0, payload["fixed"]))
-        join = {"name": "친구", "request_id": secrets.token_hex(16)}
+        join = {"name": guest_name, "request_id": secrets.token_hex(16)}
         self.assertEqual(self.guest.request(self.path + "/join", join), (200, created))
         self.assertEqual(self.guest.request(self.path + "/join", join), (200, created))
         self.assertNotEqual(self.guest.request(self.path)[1]["member"]["agent"]["agent_id"], host_agent["agent_id"])
         self.assertEqual(self.visitor.request(self.path + "/join", {**join, "request_id": secrets.token_hex(16)})[0], 409)
-        self.host_profile = {"preferences": {}}
-        guest_profile = {"preferences": {}}
+        self.host_profile = {"preferences": dict(host_preferences or {})}
+        guest_profile = {"preferences": dict(guest_preferences or {})}
         if conflict:
             self.host_profile["preferences"]["local_transport"] = {"value": "택시", "priority": "must"}
             guest_profile["preferences"]["local_transport"] = {"value": "대중교통", "priority": "must"}
@@ -107,6 +108,8 @@ class RoomRecoveryTests(unittest.TestCase):
         flow = (app or self.app).extensions["travel_workflow"].compiled
         return flow.invoke({"invite": self.invite}, {"recursion_limit": 240})
 
+
+class RoomRecoveryTests(RoomScenario):
     def test_retry_resumes_only_failed_decision(self):
         class Judge(MediatorResponses):
             calls = 0
