@@ -229,7 +229,8 @@ class Workflow:
         raw = self.member.generate(
             "너는 지금 발언할 사람의 에이전트다. 오직 본인에게 전달된 새 지시를 먼저 적용한다. 비공개 원문, 사유, 질환, "
             "작성자 정보를 출력하지 않는다. 공개 발언을 위한 구조화된 협상 행동만 선택한다. "
-            "focus는 항목 키, choice는 그 항목 후보의 0부터 시작하는 번호다. 대안이 새로 필요하면 new_value에 "
+            "focus는 이번 발언의 항목 키, choice는 그 항목 후보의 0부터 시작하는 번호다. "
+            "새 지시가 fixed_fields의 확정 항목을 가리키면 focus에 그 항목을 적고 기존 제안을 유지한다. 대안이 새로 필요하면 new_value에 "
             "짧은 지명·예산 등 항목 값만 넣고 사유를 쓰지 않는다. stance는 defend, yield, alternative, verify 중 하나다. "
             "새 지시가 필수 조건의 변경·양보 또는 본인의 예산 상한 설정·변경을 명시하면 authorized_note_seq에 그 지시 번호를 주고 "
             "priority를 must, important 또는 prefer로 설정한다. 예산 상한은 모든 중요도에서 금액과 통화 변경에 이 번호가 필요하다. "
@@ -237,11 +238,28 @@ class Workflow:
             "flight,restaurant,lodging,activity를 골라 search_context에 필요한 지명·음식 종류 등 짧은 사실만 분리하라. "
             'JSON {"focus":"키","choice":0,"stance":"yield","new_value":null,"priority":null,"authorized_note_seq":null,'
             '"searches":[],"search_context":{}}로 답하라.',
-            {"disputed": original_topic, "my_values": personal["values"], "my_budget_ceiling": ceiling,
+            {"disputed": original_topic, "fixed_fields": list(snapshot["fixed"]), "my_values": personal["values"], "my_budget_ceiling": ceiling,
              "my_new_private_instructions": [{"seq": note["seq"], "text": note["text"]}] if note else [], "fields": FIELD_GUIDE,
              "public_options": alternatives, "positions":[{"focus":p["focus"],"stance":p["stance"]} for p in snapshot["proposals"].values()]})
+        def speech(topic, content):
+            tone = personal.get("tone") or tone_settings(self.member, member["profile"]["persona"])
+            text = expression(tone, content)
+
+            def publish(room):
+                room["proposals"][str(seat)]["tone"] = tone
+                event(room, "speech", actor(room, seat), text, topic)
+                if note:
+                    room["members"][seat - 1]["handled"] = note["seq"]
+                room["floor"]["speaker"], room["step"] = None, "floor"
+            return publish
+
         topic = raw.get("focus")
-        topic = topic if isinstance(topic, str) and topic in BY_KEY and topic not in snapshot["fixed"] else original_topic
+        if not isinstance(topic, str) or topic not in BY_KEY:
+            if note:
+                raise ModelError("개인 에이전트가 지시를 반영할 여행 항목을 지정하지 못했어요.", transient=True)
+            return speech(original_topic, "이번 발언에서는 기존 제안을 유지할게요.")
+        if topic in snapshot["fixed"]:
+            return speech(topic, f'{BY_KEY[topic]["label"]} 항목은 방장이 미리 확정했어요. 기존 제안을 유지할게요.')
         options = alternatives[topic]
         stance = raw.get("stance")
         if stance not in ("defend", "yield", "alternative", "verify"):
@@ -263,16 +281,16 @@ class Workflow:
         if topic == "budget" and ceiling and not authorized and not within_budget(value, ceiling):
             value = current if within_budget(current, ceiling) else ceiling
             stance = "defend"
-        tone = personal.get("tone") or tone_settings(self.member, member["profile"]["persona"])
         facts = personal.get("search_context", {}) | search_facts(raw.get("search_context"), private_texts(snapshot))
         kinds = search_kinds(raw) if note else []
         if note and facts.get("food") and raw.get("search_context") and "restaurant" not in kinds:
             kinds.append("restaurant")
         evidence = search_for(self.member,kinds[:2],snapshot["fixed"],personal["values"],facts)
+        publish = speech(topic, spoken(member["profile"]["persona"]["preset"], stance, topic, value))
 
         def apply(room):
             p = room["proposals"][str(seat)]
-            p["stance"], p["focus"], p["tone"], p["search_context"] = stance, topic, tone, facts
+            p["stance"], p["focus"], p["search_context"] = stance, topic, facts
             if evidence:
                 refreshed = {e["kind"] for e in evidence}
                 p["evidence"] = [e for e in p["evidence"] if e["kind"] not in refreshed] + evidence
@@ -287,11 +305,7 @@ class Workflow:
                     # A cheaper proposal can coexist with the owner's authorized spending limit.
                     p["budget_ceiling"] = value if authorized else ceiling
                 p["values"][topic] = {"value": value, "priority": priority}
-            public = spoken(member["profile"]["persona"]["preset"], stance, topic, value)
-            event(room, "speech", actor(room, seat), expression(tone, public), topic)
-            if note:
-                room["members"][seat - 1]["handled"] = note["seq"]
-            room["floor"]["speaker"], room["step"] = None, "floor"
+            publish(room)
         return apply
 
     def final(self, snapshot):
