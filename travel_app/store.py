@@ -47,12 +47,23 @@ def require_member(room, token):
     return member
 
 
-def event(room, kind, actor, text, topic=""):
-    room["events"].append({"id": len(room["events"]) + 1, "kind": kind, "speaker": actor,
-                           "text": text, "topic": topic, "round": room["round"], "at": time.time()})
+def actor(room, seat):
+    return room["members"][seat - 1]["name"] + "의 에이전트"
+
+
+def event(room, kind, actor, text, topic="", *, voice_source=None, position=None):
+    item = {"id": len(room["events"]) + 1, "kind": kind, "speaker": actor,
+            "text": text, "topic": topic, "round": room["round"], "at": time.time()}
+    if voice_source:
+        item["voice_source"] = voice_source
+    if position is not None:
+        item["position"] = position
+    room["events"].append(item)
 
 
 def public_event(item):
+    item = {key: item[key] for key in ("id", "kind", "speaker", "text", "topic", "round", "at", "voice_source")
+            if key in item}
     if item["speaker"] != "중재자" or item["kind"] not in ("phase", "fight", "decision", "final", "error"):
         return item
     text = item["text"]
@@ -61,6 +72,33 @@ def public_event(item):
         opening = f"파이트 모드가 열렸어요. {topic}에 대해 차례로 의견을 들어요."
         text = text.replace(opening, f"파이터 모드가 열렸어요. {topic}에 대해 차례로 의견을 들어요.", 1)
     return {**item, "speaker": JUDGE_NAME, "text": text}
+
+
+def public_turn_memory(room, seat, topic):
+    """Read published turns. A newer unmarked legacy turn also supersedes an older position."""
+    recent = []
+    previous_own = None
+    found_own = False
+    speaker = actor(room, seat)
+    for item in reversed(room["events"]):
+        kind = item["kind"]
+        if kind not in ("proposal", "speech", "decision", "fight"):
+            continue
+        same_topic = item.get("topic") == topic
+        if len(recent) < 4 and len(item["text"]) <= 512:
+            public = public_event(item)
+            recent.append({"speaker": public["speaker"], "topic": public.get("topic", ""), "speech": public["text"]})
+        if (not found_own and kind in ("proposal", "speech") and item["speaker"] == speaker
+                and (same_topic or not item.get("topic"))):
+            found_own = True
+            position = item.get("position")
+            if (same_topic and isinstance(position, dict) and position.get("seat") == seat
+                    and position.get("act") in ("defend", "maintain", "yield", "alternative", "verify")
+                    and "value" in position and len(item["text"]) <= 512):
+                previous_own = {"topic": topic, "value": position["value"], "act": position["act"], "speech": item["text"]}
+        if found_own and len(recent) == 4:
+            break
+    return {"recent": list(reversed(recent)), "previous_own": previous_own}
 
 
 def wakeup(room):
@@ -291,7 +329,9 @@ def view(room, token):
     if public["result"] and "evidence" in public["result"]:
         result = public["result"]
         public["result"] = {**result, "evidence": [
-            {k: v for k, v in item.items() if k != "restaurant_criteria"} for item in result["evidence"]]}
+            {**{k: v for k, v in item.items() if k not in ("restaurant_criteria", "review_context", "sources")},
+             "sources": [{k: v for k, v in source.items() if k != "review_proof"} for source in item["sources"]]}
+            for item in result["evidence"]]}
     public["server_time"] = time.time()
     public["members"] = [{k: m[k] for k in ("seat", "name", "ready")} for m in room["members"]]
     public["member"] = {k: me[k] for k in ("seat", "name", "ready", "profile")}

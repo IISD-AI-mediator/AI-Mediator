@@ -1,6 +1,5 @@
 import unittest
-from unittest.mock import Mock
-
+from semantic_fixtures import SearchExchange
 from travel_app.models import grounded_search
 
 
@@ -21,12 +20,8 @@ class RestaurantGroundingTests(unittest.TestCase):
         for menu, available in cases:
             with self.subTest(menu=menu):
                 excerpt = f"난바역 인근에서 운영하는 식당입니다. {menu}"
-                adapter = Mock()
-                adapter.generate.return_value = {"groundingMetadata": {
-                    "webSearchQueries": ["난바역 삼겹살"],
-                    "groundingChunks": [{"web": {"title": "메뉴", "uri": "https://example.org/menu"}}],
-                    "groundingSupports": [{"segment": {"text": excerpt}, "groundingChunkIndices": [0]}],
-                }}
+                adapter = SearchExchange("restaurant", context, [excerpt], [{"id": 0, "supported": available}])
                 result = grounded_search(adapter, "restaurant", context)
+                self.assertEqual(adapter.calls[1][1]["segments"], [{"id": 0, "text": excerpt}])
                 self.assertEqual(result["status"], "observed" if available else "verify")
                 self.assertEqual(result["sources"][0]["matched"], available)

@@ -72,7 +72,8 @@ class RoomScenario(unittest.TestCase):
         return [BrowserSession(base_url) for _ in range(3)]
 
     def open_room(self, member, judge, *, conflict=False, host_persona=None, mediator_persona=None,
-                  host_preferences=None, guest_preferences=None, fixed=None, guest_name="친구"):
+                  host_preferences=None, guest_preferences=None, fixed=None, guest_name="친구", guest_persona=None,
+                  host_extra="", guest_extra=""):
         self.app = create_app(self.config, member_model=member, mediator_model=judge)
         self.host, self.guest, self.visitor = self.sessions()
         payload = {"name": "방장", "capacity": 2, "request_id": secrets.token_hex(16),
@@ -95,11 +96,17 @@ class RoomScenario(unittest.TestCase):
         self.assertEqual(self.visitor.request(self.path + "/join", {**join, "request_id": secrets.token_hex(16)})[0], 409)
         self.host_profile = {"preferences": dict(host_preferences or {})}
         guest_profile = {"preferences": dict(guest_preferences or {})}
+        if host_extra:
+            self.host_profile["extra"] = host_extra
+        if guest_extra:
+            guest_profile["extra"] = guest_extra
         if conflict:
             self.host_profile["preferences"]["local_transport"] = {"value": "택시", "priority": "must"}
             guest_profile["preferences"]["local_transport"] = {"value": "대중교통", "priority": "must"}
         if host_persona:
             self.host_profile["persona"] = host_persona
+        if guest_persona:
+            guest_profile["persona"] = guest_persona
         self.assertEqual(self.host.request(self.path + "/ready", self.host_profile)[0], 200)
         self.assertEqual(self.host.request(self.path)[1]["mode"], "waiting")
         self.assertEqual(self.guest.request(self.path + "/ready", guest_profile)[0], 200)
@@ -191,9 +198,16 @@ class RoomRecoveryTests(RoomScenario):
         entered, release = threading.Event(), threading.Event()
 
         class SpeakingMember(MemberResponses):
+            def generate_voice(self, instruction, data):
+                if "persona" in data and data["persona"]["instruction"] == "갈까" and data["value"]:
+                    if "쪽으로 양보할게요." in data["public_message"]:
+                        if data.get("repair"):
+                            return {"speech": "내가 {value} 쪽으로 양보할게, 갈까"}
+                        return {"speech": "내가 {value} 쪽으로 양보할게. 갈까"}
+                    return {"speech": "우리 {value} 타고 같이 가보자고! 갈까"}
+                return super().generate_voice(instruction, data)
+
             def generate(self, instruction, data, *, search=False):
-                if "tone_instruction" in data:
-                    return {"flavor": "question", "suffix": "갈까"}
                 if "my_new_private_instructions" in data and not entered.is_set():
                     entered.set()
                     if not release.wait(10):
@@ -201,10 +215,10 @@ class RoomRecoveryTests(RoomScenario):
                 return super().generate(instruction, data, search=search)
 
         class SpeakingMediator(MediatorResponses):
-            def generate(self, instruction, data, *, search=False):
-                if "tone_instruction" in data:
-                    return {"flavor": "warm", "suffix": "천천히"}
-                return super().generate(instruction, data, search=search)
+            def generate_voice(self, instruction, data):
+                if data.get("event") == "fight" and data["persona"]["instruction"] == "천천히":
+                    return {"speech": f"파이터 모드를 엽니다. {data['topic']}에 대한 의견을 주시면 감사하겠습니다. 천천히"}
+                return super().generate_voice(instruction, data)
 
         self.open_room(SpeakingMember(), SpeakingMediator(), conflict=True,
                        host_persona={"aggression": 10, "politeness": 0, "mz": 10, "instruction": "갈까"},
@@ -238,6 +252,7 @@ class RoomRecoveryTests(RoomScenario):
         self.assertIn("감사하겠습니다", opening)
         self.assertTrue(opening.endswith("천천히"))
         self.assertEqual(len(speeches), 2)
-        self.assertIn("같이 가보자고", speeches[-1])
+        self.assertIn("양보할게", speeches[-1])
         self.assertTrue(speeches[-1].endswith("갈까"))
         self.assertIn("대중교통", speeches[-1])
+        self.assertEqual(speeches[-1], "내가 대중교통 쪽으로 양보할게, 갈까")

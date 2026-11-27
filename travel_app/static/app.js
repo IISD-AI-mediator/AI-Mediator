@@ -39,7 +39,7 @@ function createScreen() {
   draft.mediator = normalizedPersona(draft.mediator,setup.mediatorStyles);
   const judgePresets = setup.mediatorStyles.map(value => [value, value.replace("진행자", "판사")]);
   const mediator = personaEditor("판사 에이전트의 성격과 말투", draft.mediator, judgePresets, persist,
-    "판사는 조율 모드와 파이터 모드에서 전원의 제안을 검토하고 최종 결정을 내려요. 아래 설정은 토론을 열 때 판사의 말투에 적용돼요.");
+    "판사는 전원의 제안을 검토한 뒤, 여기에 적은 성격과 말투로 판단을 알리고 토론을 진행해요.");
   name.addEventListener("input", () => {draft.name = name.value; persist();});
   capacity.addEventListener("change", () => {draft.capacity = Number(capacity.value); persist();});
   const code = input("password", "", "팀에서 공유한 코드"); code.autocomplete = "off"; code.required = setup.needsCode;

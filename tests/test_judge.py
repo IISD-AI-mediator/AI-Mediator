@@ -35,8 +35,6 @@ class RecordingJudge(MediatorResponses):
         self.decisions = []
 
     def generate(self, instruction, data, *, search=False):
-        if "tone_instruction" in data:
-            return {"flavor": "plain"}
         self.decisions.append(copy.deepcopy(data))
         result = super().generate(instruction, data, search=search)
         # Exceed every test traveller's budget to exercise the final decision guard.
@@ -260,11 +258,13 @@ class JudgeTests(RoomScenario):
 
     def test_budget_authorization_scope_and_missing_evidence_at_last_judgment(self):
         self.config["MAX_FIGHTS"] = 1
-        for label, host_cap, fixed_cap, authorized_seq, currency, expected in [
-            ("other traveller", 600000, None, 1, "KRW", 600000),
-            ("fixed by host", None, 400000, 1, "KRW", 400000),
-            ("stale number", None, None, 4, "KRW", 500000),
-            ("other currency without authorization", None, None, 4, "JPY", 500000),
+        amount_request = "내 예산 상한을 70만 원으로 올려 줘."
+        for label, host_cap, fixed_cap, authorized_seq, currency, request, expected in [
+            ("other traveller", 600000, None, 1, "KRW", amount_request, 600000),
+            ("fixed by host", None, 400000, 1, "KRW", amount_request, 400000),
+            ("stale number", None, None, 4, "KRW", amount_request, 500000),
+            ("other currency without authorization", None, None, 4, "JPY", amount_request, 500000),
+            ("unspecified increase", None, None, 1, "KRW", "내 예산 상한을 올려 줘.", 500000),
         ]:
             with self.subTest(label=label):
                 class BudgetMember(MemberResponses):
@@ -287,7 +287,7 @@ class JudgeTests(RoomScenario):
                     speeches = [e for e in opened["events"] if e["kind"] == "speech" and e["speaker"] == "친구의 에이전트"]
                     self.assertEqual(len(speeches), 1)
                     self.assertIn("500,000 KRW", speeches[0]["text"])
-                sent = {"text": "내 예산 상한을 올려 줘.", "request_id": secrets.token_hex(16)}
+                sent = {"text": request, "request_id": secrets.token_hex(16)}
                 self.assertEqual(self.guest.request(self.path + "/notes", sent), (200, {"seq": 1}))
                 self.clock.offset += 46
                 self.advance()
@@ -295,7 +295,7 @@ class JudgeTests(RoomScenario):
                 self.assertEqual(judge.decisions[-1]["remaining_fights"], 0)
                 final_guest = judge.decisions[-1]["proposals"][1]
                 if not fixed_cap:
-                    accepted = 700000 if authorized_seq == 1 else 500000
+                    accepted = 700000 if authorized_seq == 1 and request == amount_request else 500000
                     self.assertEqual(final_guest["values"]["budget"]["value"], money(accepted))
                 self.assertEqual(final["result"]["entries"]["budget"]["value"], money(expected))
                 self.assertEqual(final["result"]["entries"]["budget"]["status"], "fixed" if fixed_cap else "agreed")

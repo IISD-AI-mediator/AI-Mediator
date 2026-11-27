@@ -1,7 +1,14 @@
 import {announce, api, append, btn, el, errorBox, fields, fmt, labeled, line, read, retryKey, save, shell, showError, swap} from "./ui.js";
 import {ring,soundControl} from "./alerts.js";
 
-const statuses = {fixed: "사전 확정", agreed: "합의", unresolved: "미해결", verify: "확인 필요"};
+const statuses = {fixed: "사전 확정", agreed: "합의", suggested: "AI 제안", unresolved: "미해결", verify: "확인 필요"};
+function decisionStatus(item) {
+  const status = statuses[item.status] || "미정";
+  return item.origin === "agent" && item.status !== "suggested" ? status + " · AI 제안" : status;
+}
+function decisionReason(item) {
+  return [item.reason, item.verification_reason && "확인 필요 · " + item.verification_reason].filter(Boolean).join(" ");
+}
 
 function details(title, child, open = false) {
   const fold = el("details", "fold"); fold.open = open;
@@ -22,7 +29,7 @@ function proposals(history) {
   const container = el("div", "rounds");
   history.forEach((entry, index) => {
     const rows = el("dl", "rows");
-    for (const [k, v] of Object.entries(entry.entries)) if (fields[k]) rows.append(line(fields[k].label, fmt(v.value) + " · " + statuses[v.status] + " · " + v.reason));
+    for (const [k, v] of Object.entries(entry.entries)) if (fields[k]) rows.append(line(fields[k].label, fmt(v.value) + " · " + decisionStatus(v) + " · " + decisionReason(v)));
     const mode = index === 0 ? "조율 모드" : "파이터 모드 " + entry.round + "회차";
     container.append(details(mode + " · 판사 에이전트의 판단", rows));
   });
@@ -139,8 +146,10 @@ function evidenceCards(evidence) {
     const card = el("article", "source-card");
     card.append(el("h3", "", fields[item.field]?.label || "여행 정보"), el("p", "hint",
       (item.status === "observed" ? "출처 확인" : "확인 필요") + " · 조회 " + new Date(item.checked_at).toLocaleString("ko-KR")), el("p", "", item.reason));
+    const mixed = item.sources.some(source => source.matched === true) && item.sources.some(source => source.matched !== true);
     for (const source of item.sources) {
-      const a = el("a", "source-link", source.title + " ↗"); a.href = source.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+      const status = mixed ? (source.matched === true ? " · 조건 확인" : " · 확인 필요") : "";
+      const a = el("a", "source-link", source.title + status + " ↗"); a.href = source.url; a.target = "_blank"; a.rel = "noopener noreferrer";
       card.append(a);
       if (source.excerpt) card.append(el("p", "source-excerpt", source.excerpt));
       if (source.quote) {
@@ -165,16 +174,18 @@ export function resultScreen(room) {
   const page = shell("최종 여행안", "판사 에이전트가 전원의 의견을 검토해 내린 최종 결정이에요.", "조율 완료");
   const summary = el("section", "result-ticket");
   const dest = entries.destination;
-  summary.append(el("p", "eyebrow", "우리의 여행지"), el("h2", "", fmt(dest.value)), el("p", "hint", statuses[dest.status]));
+  summary.append(el("p", "eyebrow", "우리의 여행지"), el("h2", "", fmt(dest.value)), el("p", "hint", decisionStatus(dest)));
   const quick = el("dl", "rows");
-  for (const key of ["dates", "budget"]) quick.append(line(fields[key].label, fmt(entries[key].value) + " · " + statuses[entries[key].status]));
+  for (const key of ["dates", "budget"]) quick.append(line(fields[key].label, fmt(entries[key].value) + " · " + decisionStatus(entries[key])));
   summary.append(quick); page.append(summary);
   const schedule = el("section", "form-section");
   schedule.append(el("h2", "", "날짜별 일정"));
   if (!result.itinerary.length) schedule.append(el("p", "muted", "확정할 수 있는 날짜별 세부 일정은 아직 미정이에요."));
   else for (const day of result.itinerary) {
     const place = (day.place || "미정") + (day.place_status === "verify" ? " · 세부 장소 확인 필요" : "");
-    const rows = el("dl", "rows"); rows.append(line("장소", place), line("이동", day.transport || "미정"), line("활동", day.activity || "미정"));
+    const activityLabel = {planned: "일정 반영", candidate: "후보 · 확인 필요"}[day.activity_status];
+    const activity = [day.activity || "미정", activityLabel, day.activity_reason].filter(Boolean).join(" · ");
+    const rows = el("dl", "rows"); rows.append(line("장소", place), line("이동", day.transport || "미정"), line("활동", activity));
     schedule.append(details(day.date + (day.place ? " · " + day.place : ""), rows));
   }
   page.append(schedule);
@@ -182,8 +193,8 @@ export function resultScreen(room) {
   for (const [key, item] of Object.entries(entries)) {
     if (!fields[key]) continue;
     const row = el("article", "decision-row");
-    row.append(append(el("div", "decision-head"), el("h3", "", fields[key].label), el("span", "tag", statuses[item.status])),
-      el("p", "decision-value", fmt(item.value)), el("p", "muted", item.reason)); decisions.append(row);
+    row.append(append(el("div", "decision-head"), el("h3", "", fields[key].label), el("span", "tag", decisionStatus(item))),
+      el("p", "decision-value", fmt(item.value)), el("p", "muted", decisionReason(item))); decisions.append(row);
   }
   page.append(decisions, details("검색 근거와 조회 시각", evidenceCards(result.evidence), result.evidence.some(e => e.status === "verify")),
     details("판사 에이전트의 판단 이력", proposals(room.history)));

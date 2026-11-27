@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 from flask import Flask, abort, jsonify, render_template, request
 from werkzeug.exceptions import HTTPException
 
+from .config import gemini_api_key
 from .domain import AGENT_STYLES, CURRENCIES, FIELDS, MEDIATOR_STYLES, Problem
 from .graph import Workflow
 from .models import Gemini
@@ -18,13 +19,15 @@ def create_app(config=None, *, member_model=None, mediator_model=None):
     app = Flask(__name__)
     app.config.update(
         MAX_CONTENT_LENGTH=32768, DATABASE_URL=os.environ.get("DATABASE_URL") or os.environ.get("TRAVEL_DB_PATH") or str(Path(app.instance_path) / "travel.sqlite3"),
-        GEMINI_API_KEY=os.environ.get("GEMINI_API_KEY", ""), MEMBER_MODEL=os.environ.get("MEMBER_MODEL", "gemini-3.1-flash-lite"),
+        MEMBER_MODEL=os.environ.get("MEMBER_MODEL", "gemini-3.1-flash-lite"),
         MEDIATOR_MODEL=os.environ.get("MEDIATOR_MODEL", "gemini-3.8-flash"), ROOM_CREATE_CODE=os.environ.get("ROOM_CREATE_CODE", ""),
         ROOM_LIMIT=int(os.environ.get("ROOM_LIMIT", "20")), FIGHT_SECONDS=int(os.environ.get("FIGHT_SECONDS", "45")),
         MAX_FIGHTS=2, START_WORKER=True, COOKIE_SECURE=os.environ.get("COOKIE_SECURE", "1" if os.environ.get("RENDER") else "0") == "1")
     if config:
         app.config.update(config)
     c = app.config
+    if "GEMINI_API_KEY" not in c:
+        c["GEMINI_API_KEY"] = gemini_api_key()
     if os.environ.get("RENDER") and (not c["ROOM_CREATE_CODE"] or not c["DATABASE_URL"].startswith(("postgresql://", "postgres://"))):
         raise RuntimeError("Render의 ROOM_CREATE_CODE와 지속 저장용 PostgreSQL DATABASE_URL을 설정해 주세요.")
     if c["MEMBER_MODEL"] == c["MEDIATOR_MODEL"]:

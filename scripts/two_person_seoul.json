@@ -1,0 +1,73 @@
+{
+  "fixed": {
+    "origin": "대전",
+    "destination": "서울",
+    "dates": {
+      "start": "2026-12-05",
+      "end": "2026-12-06"
+    },
+    "transport": "기차"
+  },
+  "judge": {
+    "preset": "간결한 진행자",
+    "aggression": 4,
+    "politeness": 8,
+    "mz": 2,
+    "instruction": "회의 의장처럼 쟁점과 다음 절차를 정중한 한두 문장으로 안내해 주세요."
+  },
+  "서윤": {
+    "persona": {
+      "preset": "차분한 분석가",
+      "aggression": 2,
+      "politeness": 9,
+      "mz": 1,
+      "instruction": "여행 회계 담당처럼 차분한 존댓말을 써 주세요. 결론을 먼저 밝히고 조건을 한 문장으로 덧붙여 주세요."
+    },
+    "preferences": {
+      "budget": {
+        "value": {
+          "amount": 350000,
+          "currency": "KRW"
+        },
+        "priority": "important"
+      },
+      "local_transport": {
+        "value": "대중교통",
+        "priority": "must"
+      },
+      "activities": {
+        "value": "국립중앙박물관 전시 관람",
+        "priority": "must"
+      }
+    },
+    "extra": "국립중앙박물관이 서울에 있는지 공개 자료를 찾아서 관람 일정을 제안해 주세요."
+  },
+  "민재": {
+    "persona": {
+      "preset": "당당한 대변인",
+      "aggression": 8,
+      "politeness": 2,
+      "mz": 8,
+      "instruction": "오래된 여행 친구처럼 짧은 반말로 말해. 먼저 리액션 한마디 하고 하고 싶은 일이나 양보를 또렷하게 말해."
+    },
+    "preferences": {
+      "budget": {
+        "value": {
+          "amount": 500000,
+          "currency": "KRW"
+        },
+        "priority": "important"
+      },
+      "local_transport": {
+        "value": "택시",
+        "priority": "must"
+      },
+      "activities": {
+        "value": "한강 산책",
+        "priority": "must"
+      }
+    },
+    "extra": ""
+  },
+  "guest_note": "이번에는 택시 필수 조건을 철회할게. 현지 이동은 대중교통으로 양보하고 내 중요도도 선호로 낮춰 줘."
+}
