@@ -36,14 +36,14 @@ class LocalGeminiTests(unittest.TestCase):
     def test_wsgi_reads_only_the_literal_project_key(self):
         self.env_file.write_text(
             'GEMINI_API_KEY="fixture ${PART} # literal"  # comment\n'
-            'PART=expanded\nROOM_CREATE_CODE=unexpected\n', encoding="utf-8-sig")
+            'PART=expanded\nROOM_LIMIT=999\n', encoding="utf-8-sig")
         before = dict(os.environ)
         app = runpy.run_module("travel_app.wsgi")["app"]
         runner = app.extensions["travel_runner"]
         self.addCleanup(runner.thread.join)
         self.addCleanup(runner.close)
         self.assert_workflow_key(app, "fixture ${PART} # literal")
-        self.assertEqual(app.config["ROOM_CREATE_CODE"], "")
+        self.assertEqual(app.config["ROOM_LIMIT"], 20)
         self.assertEqual(dict(os.environ), before)
         self.assertEqual(app.test_client().get("/healthz").get_json()["status"], "ok")
 

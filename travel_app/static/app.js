@@ -9,7 +9,9 @@ document.getElementById("guide-done").addEventListener("click", () => guide.clos
 document.getElementById("close-guide").addEventListener("click", () => guide.close());
 guide.addEventListener("click", e => {if (e.target === guide) guide.close();});
 const invite = setup.invite, endpoint = "/api/rooms/" + encodeURIComponent(invite || "");
+const roomPath = "/r/" + encodeURIComponent(invite || "");
 const roomKey = key => key + ":" + invite;
+let sharing = setup.share;
 let lastRoom, screen = "", mounted = null, refreshing = false, queued = false, handle = 0;
 
 function welcome() {
@@ -42,9 +44,7 @@ function createScreen() {
     "판사는 전원의 제안을 검토한 뒤, 여기에 적은 성격과 말투로 판단을 알리고 토론을 진행해요.");
   name.addEventListener("input", () => {draft.name = name.value; persist();});
   capacity.addEventListener("change", () => {draft.capacity = Number(capacity.value); persist();});
-  const code = input("password", "", "팀에서 공유한 코드"); code.autocomplete = "off"; code.required = setup.needsCode;
   basic.append(append(el("div", "pair"), labeled("내 닉네임", name, "name"), labeled("총인원 · 방장 포함", capacity, "capacity")));
-  if (setup.needsCode) basic.append(labeled("팀 방 개설 코드", code, "team_code"));
   const conditional = formSection("미리 확정할 조건", "여기서 직접 입력한 항목은 방에 있는 모두에게 고정돼요. 아직 정해지지 않았다면 맡겨 주세요.");
   conditional.append(fieldEditor(draft, {}, false, persist));
   const error = errorBox(), submit = submitButton("여행방 만들기  →");
@@ -55,25 +55,49 @@ function createScreen() {
     const key = retryKey("create", body);
     submit.disabled = true;
     try {
-      const result = await api("/api/rooms", {...body, request_id: key, team_code: code.value});
+      const result = await api("/api/rooms", {...body, request_id: key});
+      // New invites contain 18 random bytes encoded as 24 URL-safe characters.
+      if (typeof result.invite !== "string" || !/^[A-Za-z0-9_-]{24}$/.test(result.invite)) {
+        throw new Error("초대 링크를 받지 못했어요. 같은 설정으로 다시 시도해 주세요.");
+      }
+      location.assign("/r/" + result.invite + "/share");
       save("create-draft", {name: draft.name, capacity: 2, mediator: setup.mediatorStyles[0], fields: {}});
       save("retry:create", {});
-      location.assign("/r/" + encodeURIComponent(result.invite));
     } catch (ex) {showError(form, error, ex); submit.disabled = false;}
   });
   page.append(form); swap(page, "여행방 만들기");
 }
 
+function roomLink(text, path, style = "secondary") {
+  const link = el("a", "button " + style, text);
+  link.href = path;
+  return link;
+}
+
 function invitePanel() {
   const box = el("section", "panel invite"), row = el("div", "invite-line");
-  box.append(el("h3", "", "함께 갈 사람 초대"));
-  const url = input("url", location.origin + "/r/" + invite); url.readOnly = true; url.setAttribute("aria-label", "여행방 초대 링크");
+  const url = input("text", location.origin + roomPath);
+  url.id = "invite-url"; url.readOnly = true;
+  const label = el("label", "input-label", "여행방 초대 링크"); label.htmlFor = url.id;
   const status = el("p", "hint"); status.setAttribute("role", "status");
   const button = btn("링크 복사", async () => {
     try {await navigator.clipboard.writeText(url.value); status.textContent = "초대 링크를 복사했어요.";}
     catch {url.focus(); url.select(); status.textContent = "링크 전체를 선택했어요. 복사해서 공유해 주세요.";}
   });
-  row.append(url, button); box.append(row, status); return box;
+  row.append(url, button); box.append(label, row, status); return box;
+}
+
+function shareScreen() {
+  const page = shell("여행방을 만들었어요", "함께 갈 사람에게 이 링크를 보내 주세요.");
+  const next = roomLink("", roomPath, "primary");
+  next.addEventListener("click", () => {
+    if (!lastRoom.member.ready) save(roomKey("review"), false);
+  });
+  page.append(invitePanel(), next); swap(page, "초대 링크 공유");
+  return room => {
+    const label = room.member.ready ? "대기 화면으로" : "내 여행 조건 입력";
+    if (next.textContent !== label) next.textContent = label;
+  };
 }
 
 function joinScreen(room) {
@@ -101,7 +125,7 @@ function profileScreen(room) {
   const persist = () => save(roomKey("profile"), draft);
   const page = shell("내 여행 조건", "직접 정하고 싶은 것만 선택해요. 나머지는 내 에이전트가 함께 조율해요.", "준비 1 / 2");
   const form = el("form");
-  if (room.member.seat === 1) page.append(invitePanel());
+  if (room.member.seat === 1) page.append(roomLink("초대 링크 공유", roomPath + "/share"));
   if (room.member.agent) page.append(append(el("section","panel"),el("h3","","내 에이전트의 임무"),el("p","muted",room.member.agent.mission)));
   const section = formSection("내가 원하는 조건", "직접 입력한 항목은 중요도도 정할 수 있어요.");
   section.append(fieldEditor(draft, room.fixed, true, persist));
@@ -133,7 +157,9 @@ function reviewScreen(room) {
 function waitingScreen(room) {
   const page = shell("친구들을 기다려요.", "모두 준비를 마치면 각자의 에이전트가 조율을 시작해요.", "준비 완료");
   const counts = el("p", "counts"), roster = el("ul", "roster"), section = el("section", "panel");
-  section.append(el("h2", "", "참여자"), counts, roster); page.append(soundControl(), section, invitePanel(), profileSummary(room.member.profile));
+  section.append(el("h2", "", "참여자"), counts, roster);
+  const inviteControl = room.member.seat === 1 ? roomLink("초대 링크 공유", roomPath + "/share") : invitePanel();
+  page.append(soundControl(), section, inviteControl, profileSummary(room.member.profile));
   swap(page, "참여자 기다리기");
   let prior = "";
   return r => {
@@ -146,7 +172,11 @@ function waitingScreen(room) {
 
 function route(room) {
   lastRoom = room;
-  const next = !room.member ? "join" : !room.member.ready ? (read(roomKey("review")) ? "review" : "profile")
+  if (sharing && (room.member?.seat !== 1 || room.mode !== "waiting")) {
+    history.replaceState(null, "", roomPath);
+    sharing = false;
+  }
+  const next = sharing ? "share" : !room.member ? "join" : !room.member.ready ? (read(roomKey("review")) ? "review" : "profile")
     : room.mode === "waiting" ? "waiting" : room.mode === "done" ? "result" : "negotiation";
   if (next === "result" && screen === "negotiation" &&
       (main.contains(document.activeElement) && document.activeElement !== main || !main.querySelector(".chat .full")?.hidden)) {
@@ -154,6 +184,7 @@ function route(room) {
   }
   if (next !== screen) {
     screen = next; mounted = null;
+    if (next === "share") mounted = shareScreen();
     if (next === "join") mounted = joinScreen(room);
     if (next === "profile") profileScreen(room);
     if (next === "review") reviewScreen(room);
@@ -173,18 +204,20 @@ async function refresh() {
   const connection = document.getElementById("connection");
   try {
     const room = await api(endpoint);
+    if (room.invite !== invite || !("member" in room)) throw new Error("여행방 정보를 다시 확인해 주세요.");
     if (!connection.hidden) announce("여행방 연결을 복원했어요.");
     connection.hidden = true; route(room);
   } catch (ex) {
     connection.hidden = false; connection.textContent = ex.status === 404 ? ex.message : "연결을 확인하고 있어요. 다시 연결되면 여행방을 복원해요.";
-    if (!lastRoom && ex.status === 404) {
+    if (!lastRoom && ex.status === 404 && screen !== "missing") {
+      screen = "missing";
       const page = shell("여행방을 찾지 못했어요.", "받은 초대 링크를 다시 확인해 주세요.");
       page.append(btn("처음으로", () => location.assign("/"))); swap(page, "초대 링크 확인");
     }
   } finally {
     refreshing = false;
     if (queued) {queued = false; handle = setTimeout(refresh, 0);}
-    else if (lastRoom?.mode !== "done") handle = setTimeout(refresh, document.hidden ? 4500 : 1400);
+    else if (screen !== "missing" && lastRoom?.mode !== "done") handle = setTimeout(refresh, document.hidden ? 4500 : 1400);
   }
 }
 if (invite) {

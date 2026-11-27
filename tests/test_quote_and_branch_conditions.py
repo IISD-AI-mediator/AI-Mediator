@@ -80,7 +80,7 @@ class QuoteAndBranchTests(unittest.TestCase):
 
     def test_completed_v100_room_is_corrected_on_public_read_and_refresh(self):
         with tempfile.TemporaryDirectory() as directory:
-            app = create_app({"DATABASE_URL":str(Path(directory)/"old.db"),"START_WORKER":False,"ROOM_CREATE_CODE":""})
+            app = create_app({"DATABASE_URL":str(Path(directory)/"old.db"),"START_WORKER":False})
             member = app.test_client()
             invite = member.post("/api/rooms",json={"name":"여행자","capacity":2,"request_id":secrets.token_hex(16)}).get_json()["invite"]
             endpoint = "/api/rooms/" + invite

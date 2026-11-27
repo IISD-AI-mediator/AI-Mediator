@@ -40,7 +40,7 @@ class OpeningPositions:
 
 def configured(db_path):
     return create_app({"DATABASE_URL": db_path, "START_WORKER": False,
-                       "ROOM_CREATE_CODE": "", "COOKIE_SECURE": False})
+                       "COOKIE_SECURE": False})
 
 
 def worker(options):
@@ -103,7 +103,7 @@ def run(*, opening_topic=None):
         app = configured(database)
         host, guest = app.test_client(), app.test_client()
         new_room = host.post("/api/rooms", json={"request_id": secrets.token_hex(16), "name": "서윤",
-                             "capacity": 2, "team_code": "", "fixed": data["fixed"], "mediator": data["judge"]})
+                             "capacity": 2, "fixed": data["fixed"], "mediator": data["judge"]})
         invite = new_room.get_json()["invite"]
         path = "/api/rooms/" + invite
         assert guest.post(path + "/join", json={"name": "민재", "request_id": secrets.token_hex(16)}).status_code < 300

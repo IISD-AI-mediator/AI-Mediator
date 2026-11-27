@@ -1,4 +1,3 @@
-import hmac
 import os
 import re
 from pathlib import Path
@@ -20,7 +19,7 @@ def create_app(config=None, *, member_model=None, mediator_model=None):
     app.config.update(
         MAX_CONTENT_LENGTH=32768, DATABASE_URL=os.environ.get("DATABASE_URL") or os.environ.get("TRAVEL_DB_PATH") or str(Path(app.instance_path) / "travel.sqlite3"),
         MEMBER_MODEL=os.environ.get("MEMBER_MODEL", "gemini-3.1-flash-lite"),
-        MEDIATOR_MODEL=os.environ.get("MEDIATOR_MODEL", "gemini-3.8-flash"), ROOM_CREATE_CODE=os.environ.get("ROOM_CREATE_CODE", ""),
+        MEDIATOR_MODEL=os.environ.get("MEDIATOR_MODEL", "gemini-3.8-flash"),
         ROOM_LIMIT=int(os.environ.get("ROOM_LIMIT", "20")), FIGHT_SECONDS=int(os.environ.get("FIGHT_SECONDS", "45")),
         MAX_FIGHTS=2, START_WORKER=True, COOKIE_SECURE=os.environ.get("COOKIE_SECURE", "1" if os.environ.get("RENDER") else "0") == "1")
     if config:
@@ -28,8 +27,8 @@ def create_app(config=None, *, member_model=None, mediator_model=None):
     c = app.config
     if "GEMINI_API_KEY" not in c:
         c["GEMINI_API_KEY"] = gemini_api_key()
-    if os.environ.get("RENDER") and (not c["ROOM_CREATE_CODE"] or not c["DATABASE_URL"].startswith(("postgresql://", "postgres://"))):
-        raise RuntimeError("Render의 ROOM_CREATE_CODE와 지속 저장용 PostgreSQL DATABASE_URL을 설정해 주세요.")
+    if os.environ.get("RENDER") and not c["DATABASE_URL"].startswith(("postgresql://", "postgres://")):
+        raise RuntimeError("Render에 지속 저장용 PostgreSQL DATABASE_URL을 설정해 주세요.")
     if c["MEMBER_MODEL"] == c["MEDIATOR_MODEL"]:
         raise RuntimeError("개인 에이전트와 판사 에이전트에 서로 다른 Gemini 모델을 설정해 주세요.")
     version_file = Path(__file__).resolve().parents[1] / "VERSION"
@@ -103,19 +102,16 @@ def create_app(config=None, *, member_model=None, mediator_model=None):
 
     @app.get("/")
     @app.get("/r/<invite>")
-    def index(invite=None):
+    @app.get("/r/<invite>/share", defaults={"share": True})
+    def index(invite=None, share=False):
         if invite and (len(invite) > 64 or not all(ch.isalnum() or ch in "_-" for ch in invite)):
             abort(404)
-        return render_template("index.html", setup={"invite": invite, "fields": FIELDS, "currencies": CURRENCIES,
-            "agentStyles": AGENT_STYLES, "mediatorStyles": MEDIATOR_STYLES, "needsCode": bool(c["ROOM_CREATE_CODE"])})
+        return render_template("index.html", setup={"invite": invite, "share": share, "fields": FIELDS, "currencies": CURRENCIES,
+            "agentStyles": AGENT_STYLES, "mediatorStyles": MEDIATOR_STYLES})
 
     @app.post("/api/rooms")
     def create():
-        body = data()
-        code = body.get("team_code", "")
-        if c["ROOM_CREATE_CODE"] and (not isinstance(code, str) or not hmac.compare_digest(code.encode(), c["ROOM_CREATE_CODE"].encode())):
-            raise Problem("팀에서 공유한 방 개설 코드를 확인해 주세요.", 403, "team_code")
-        created = store.create(body)
+        created = store.create(data())
         runner.wake.set()
         return joined(*created)
 

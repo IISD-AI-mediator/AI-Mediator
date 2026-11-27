@@ -57,7 +57,7 @@ class RoomScenario(unittest.TestCase):
         for module in ("travel_app.store.time", "travel_app.graph.time"):
             self.enterContext(patch(module, self.clock))
         self.config = {"DATABASE_URL": str(Path(folder) / "rooms.sqlite"), "START_WORKER": False,
-                       "ROOM_CREATE_CODE": "test-team", "FIGHT_SECONDS": 45, "COOKIE_SECURE": False}
+                       "FIGHT_SECONDS": 45, "COOKIE_SECURE": False}
 
     def sessions(self):
         if os.environ.get("TRAVEL_TEST_TRANSPORT", "http") == "wsgi":
@@ -77,7 +77,7 @@ class RoomScenario(unittest.TestCase):
         self.app = create_app(self.config, member_model=member, mediator_model=judge)
         self.host, self.guest, self.visitor = self.sessions()
         payload = {"name": "방장", "capacity": 2, "request_id": secrets.token_hex(16),
-                   "team_code": "test-team", "fixed": {"destination": "부산", **(fixed or {})}}
+                   "fixed": {"destination": "부산", **(fixed or {})}}
         if mediator_persona:
             payload["mediator"] = mediator_persona
         code, created = self.host.request("/api/rooms", payload)
