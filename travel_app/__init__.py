@@ -28,7 +28,7 @@ def create_app(config=None, *, member_model=None, mediator_model=None):
     if os.environ.get("RENDER") and (not c["ROOM_CREATE_CODE"] or not c["DATABASE_URL"].startswith(("postgresql://", "postgres://"))):
         raise RuntimeError("Render의 ROOM_CREATE_CODE와 지속 저장용 PostgreSQL DATABASE_URL을 설정해 주세요.")
     if c["MEMBER_MODEL"] == c["MEDIATOR_MODEL"]:
-        raise RuntimeError("개인 조율자와 결정자에 서로 다른 Gemini 모델을 설정해 주세요.")
+        raise RuntimeError("개인 에이전트와 판사 에이전트에 서로 다른 Gemini 모델을 설정해 주세요.")
     version_file = Path(__file__).resolve().parents[1] / "VERSION"
     try:
         version = version_file.read_text(encoding="utf-8").strip() or "development"

@@ -15,9 +15,9 @@ from travel_app.graph import Workflow
 
 
 LABELS = {"__start__": "시작", "__end__": "실행 반환", "resume": "저장 단계 복구",
-          "team": "생성자 · 역할 배정", "propose": "제안 작성", "judge": "결정자 · 중재",
-          "open": "파이트 모드 열기", "floor": "발언 순서·마감", "speak": "개인 발언",
-          "final": "결과 확정", "personal_agent": "참가자별 에이전트",
+          "team": "생성자 · 역할 배정", "propose": "제안 작성", "judge": "판사 에이전트의 판단",
+          "open": "파이터 모드 열기", "floor": "발언 순서·마감", "speak": "개인 발언",
+          "final": "최종 결정 게시", "personal_agent": "참가자별 에이전트",
           "interpret": "개인 조건 해석", "search": "외부 근거 검색"}
 
 
@@ -121,7 +121,7 @@ def export(output):
     text(root, 26, 39, "AI–MEDIATOR  /  LANGGRAPH", 14, 700, "#536359")
     text(root, 26, 79, "동행의 여행 조율 과정", 33, 750)
     text(root, 1080, 81, "실선 · 기본 연결   /   점선 · 조건 분기", 14, 500, "#526059", "end")
-    draw_graph(root, "travel_negotiation", set(outer.nodes) - recovery_nodes, primary_edges, 22, 423, "방의 협상 단계", "합의 여부와 발언 순서에 따라 다음 단계로 이동한다.")
+    draw_graph(root, "travel_negotiation", set(outer.nodes) - recovery_nodes, primary_edges, 22, 423, "방의 협상 단계", "조율 모드와 파이터 모드에서 판사가 전원의 제안을 검토한다.")
     draw_graph(root, "parallel_agents", panel.nodes, panel.edges, 458, 305, "참가자별 병렬 처리", "정원만큼 독립된 에이전트에 작업을 배정한다.")
     draw_graph(root, "personal_agent", individual.nodes, individual.edges, 776, 302, "개인 에이전트", "필요한 검색 근거를 개인 제안에 반영한다.")
     recovery = element(root, "g", {"data-graph": "travel_negotiation", "data-view": "resume-and-return"})

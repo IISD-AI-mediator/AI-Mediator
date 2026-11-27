@@ -96,8 +96,8 @@ export function normalizedPersona(value, presets) {
   const base = {preset:presets[0],aggression:5,politeness:5,mz:5,instruction:""};
   return typeof value === "string" ? {...base,preset:value} : {...base,...value};
 }
-export function personaEditor(title, value, presets, persist) {
-  const box = formSection(title,"세 수치와 말투는 파이트 모드에서 이 화자의 표현에 적용돼요.");
+export function personaEditor(title, value, presets, persist, description = "세 수치와 말투는 파이터 모드에서 내 에이전트의 발언에 적용돼요.") {
+  const box = formSection(title, description);
   const preset = selectControl(presets,value.preset);
   preset.addEventListener("change",() => {value.preset=preset.value;persist();});
   box.append(labeled("기본 성향",preset));

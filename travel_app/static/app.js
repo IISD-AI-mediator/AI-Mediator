@@ -15,7 +15,7 @@ let lastRoom, screen = "", mounted = null, refreshing = false, queued = false, h
 function welcome() {
   const wrap = el("div", "welcome"), hero = el("section", "hero"), intro = el("div", "intro");
   intro.append(el("p", "greeting", "반가워요, 여행자님."), append(el("h1"), el("span", "", "우리의 여행,"), el("span", "", "함께 정해요.")),
-    el("p", "hero-copy", "각자의 취향을 모으고 에이전트와 의견을 나눠요. 모두의 조건을 담은 하나의 여행안이 완성돼요."),
+    el("p", "hero-copy", "내 에이전트에게 여행 조건을 맡겨요. 판사 에이전트가 모두의 의견을 듣고 여행안을 결정해요."),
     append(el("div", "actions"), btn("여행방 만들기  →", createScreen, "button primary"), btn("사용법 보기", revealGuide)));
   const art = el("div", "travel-art"); art.setAttribute("aria-hidden", "true");
   for (const name of ["grid-map", "contour contour-one", "contour contour-two", "contour contour-three", "route", "pin pin-a", "pin pin-b", "plane"]) art.append(el("i", name));
@@ -37,7 +37,9 @@ function createScreen() {
   const form = el("form"), basic = formSection("여행방 설정", "");
   const name = nameInput(draft.name), capacity = selectControl(Array.from({length: 7}, (_, i) => [i + 2, (i + 2) + "명"]), draft.capacity);
   draft.mediator = normalizedPersona(draft.mediator,setup.mediatorStyles);
-  const mediator = personaEditor("방 중재자의 성격과 말투",draft.mediator,setup.mediatorStyles,persist);
+  const judgePresets = setup.mediatorStyles.map(value => [value, value.replace("진행자", "판사")]);
+  const mediator = personaEditor("판사 에이전트의 성격과 말투", draft.mediator, judgePresets, persist,
+    "판사는 조율 모드와 파이터 모드에서 전원의 제안을 검토하고 최종 결정을 내려요. 아래 설정은 토론을 열 때 판사의 말투에 적용돼요.");
   name.addEventListener("input", () => {draft.name = name.value; persist();});
   capacity.addEventListener("change", () => {draft.capacity = Number(capacity.value); persist();});
   const code = input("password", "", "팀에서 공유한 코드"); code.autocomplete = "off"; code.required = setup.needsCode;

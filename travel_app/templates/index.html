@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#ffffff">
-  <meta name="description" content="각자의 여행 조건을 모으고 개인 에이전트와 함께 하나의 여행안을 정해요.">
+  <meta name="description" content="개인 에이전트가 각자의 여행 조건을 제안하고 판사 에이전트가 모두의 의견을 검토해 여행안을 결정해요.">
   <title>동행 · AI 여행 조율</title>
   <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
   <script type="module" src="{{ url_for('static',filename='app.js') }}"></script>
@@ -23,8 +23,9 @@
     <ol class="guide-steps">
       <li><strong>여행방을 만들어요.</strong><p>함께 갈 인원과 확정한 조건을 정하고, 초대 링크를 나눠요.</p></li>
       <li><strong>내 조건을 맡겨요.</strong><p>원하는 항목만 직접 입력해요. 방장을 포함해 모두 준비를 마치면 조율이 시작돼요.</p></li>
-      <li><strong>조율 과정을 함께 봐요.</strong><p>의견이 갈리면 파이트 모드가 열려요. 내 에이전트에게만 추가 지시를 보낼 수 있어요.</p></li>
-      <li><strong>최종 여행안을 확인해요.</strong><p>결정한 일정과 근거, 아직 확인해야 할 항목이 한곳에 모여요.</p></li>
+      <li><strong>조율 모드에서 제안을 살펴봐요.</strong><p>판사 에이전트가 모든 개인 에이전트의 제안과 근거를 검토해요. 의견이 모이면 바로 여행안을 결정해요.</p></li>
+      <li><strong>의견이 갈리면 파이터 모드에서 논의해요.</strong><p>판사가 쟁점을 알리면 내 에이전트에게만 추가 지시를 보낼 수 있어요. 토론이 끝나면 판사가 달라진 의견을 다시 살펴봐요.</p></li>
+      <li><strong>판사의 최종 여행안을 확인해요.</strong><p>항목별 결정과 이유, 끝까지 합의하지 못했거나 더 확인해야 할 조건을 볼 수 있어요.</p></li>
     </ol><button type="button" class="button primary full" id="guide-done">알겠어요</button>
   </dialog>
   <script id="setup" type="application/json">{{ setup|tojson }}</script>

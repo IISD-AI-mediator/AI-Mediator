@@ -105,6 +105,17 @@ def combined_activities(needs, value, days, private):
     return None
 
 
+def personal_budget_ceiling(member, proposal):
+    if "budget" in proposal.get("overrides", []):
+        # Older proposals stored the authorized limit in values alone.
+        return proposal.get("budget_ceiling") or proposal["values"].get("budget", {}).get("value")
+    return member["profile"]["preferences"].get("budget", {}).get("value")
+
+
+def within_budget(value, ceiling):
+    return value is not None and value["currency"] == ceiling["currency"] and value["amount"] <= ceiling["amount"]
+
+
 def policy(room, key, raw_value, private, days=()):
     if key in room["fixed"]:
         return room["fixed"][key], "fixed", "방을 만들 때 확정한 조건이에요."
@@ -114,13 +125,17 @@ def policy(room, key, raw_value, private, days=()):
     needs = distinct(p["value"] for p in stated + proposals if p["priority"] == "must")
     value = generated_value(key, raw_value, private)
     if key == "budget":
-        caps = [p["value"] for p in stated + proposals if p["priority"] != "delegate"]
+        caps = [p["value"] for p in proposals if p["priority"] != "delegate"]
+        for member in room["members"]:
+            limit = personal_budget_ceiling(member, room["proposals"].get(str(member["seat"]), {}))
+            if limit:
+                caps.append(limit)
         currencies = {cap["currency"] for cap in caps}
         if len(currencies) > 1:
             return None, "verify", "통화가 달라 같은 기준으로 비교할 환율과 시점이 필요해요."
         if caps:
             ceiling = min(caps, key=lambda x: x["amount"])
-            if not value or value["currency"] != ceiling["currency"] or value["amount"] > ceiling["amount"]:
+            if not within_budget(value, ceiling):
                 value = ceiling
             return value, "agreed", "각자가 제시한 1인 예산 상한 안으로 맞췄어요."
     if len(needs) > 1:

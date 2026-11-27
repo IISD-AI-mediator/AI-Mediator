@@ -26,6 +26,7 @@ BY_KEY = {item["key"]: item for item in FIELDS}
 CURRENCIES = ("KRW", "JPY", "USD", "EUR", "CNY", "GBP", "THB", "VND")
 PRIORITIES = ("prefer", "important", "must")
 AGENT_STYLES = ("차분한 분석가", "다정한 협상가", "당당한 대변인")
+JUDGE_NAME = "판사 에이전트"
 MEDIATOR_STYLES = ("균형 잡힌 진행자", "다정한 진행자", "간결한 진행자")
 AXES = ("aggression", "politeness", "mz")
 
