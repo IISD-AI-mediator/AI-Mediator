@@ -69,20 +69,23 @@ export function retryKey(kind, data) {
   return key;
 }
 export async function api(path, data) {
-  let response;
+  let response, result;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 18000);
   try {
     response = await fetch(path, {method: data === undefined ? "GET" : "POST", credentials: "same-origin",
       cache: "no-store", signal: controller.signal, headers: data === undefined ? {} : {"Content-Type": "application/json"},
       body: data === undefined ? undefined : JSON.stringify(data)});
+    result = await response.json().catch(() => null);
   } catch {throw new Error("연결을 확인해 주세요. 작성한 내용을 보관하고 있어요.");}
   finally {clearTimeout(timer);}
-  const result = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const error = new Error(result.error || "요청을 마치지 못했어요. 잠시 후 다시 시도해 주세요.");
-    error.field = result.field; error.status = response.status;
+    const error = new Error(result?.error || "요청을 마치지 못했어요. 잠시 후 다시 시도해 주세요.");
+    error.field = result?.field; error.status = response.status;
     throw error;
+  }
+  if (!result || typeof result !== "object" || Array.isArray(result)) {
+    throw new Error("서버 응답을 읽지 못했어요. 다시 시도해 주세요.");
   }
   return result;
 }
