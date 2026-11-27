@@ -1,0 +1,14 @@
+import os
+
+from . import create_app
+
+if __name__ == "__main__":
+    app = create_app()
+    host, port = os.environ.get("HOST", "127.0.0.1"), int(os.environ.get("PORT", "8000"))
+    try:
+        from waitress import serve
+    except ModuleNotFoundError:
+        app.run(host=host, port=port, threaded=True, use_reloader=False)
+    else:
+        print(f"여행 조율 서버 · http://{host}:{port}", flush=True)
+        serve(app, host=host, port=port, threads=8)

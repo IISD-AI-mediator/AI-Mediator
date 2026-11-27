@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: iisd-travel-mediator
+    runtime: python
+    plan: free
+    region: singapore
+    branch: develop
+    buildCommand: >-
+      pip install -r requirements.txt && python scripts/check_live_providers.py
+    startCommand: waitress-serve --listen=0.0.0.0:$PORT --threads=8 travel_app.wsgi:app
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.9
+      # Only this release's builds send the three sample provider requests.
+      - key: PROVIDER_CHECK_VERSION
+        value: 1.0.1
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ROOM_CREATE_CODE
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: iisd-travel-postgres
+          property: connectionString
+      - key: COOKIE_SECURE
+        value: "1"
+      - key: ROOM_LIMIT
+        value: "20"
+databases:
+  - name: iisd-travel-postgres
+    region: singapore
+    plan: free
+    databaseName: travel
+    user: travel_app
+    ipAllowList: []
