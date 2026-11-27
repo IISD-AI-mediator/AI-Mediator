@@ -103,7 +103,8 @@ export function personaEditor(title, value, presets, persist, description = "세
   box.append(labeled("기본 성향",preset));
   for (const [key,label] of [["aggression","공격성"],["politeness","예의"],["mz","MZ 감성"]]) {
     const slider = input("range",value[key]); slider.min = "0"; slider.max = "10"; slider.step = "1"; slider.value = String(value[key]);
-    const row = el("div","persona-range"), out = el("output","range-value",value[key] + " / 10");
+    const row = el("div","persona-range"), out = el("span","range-value",value[key] + " / 10");
+    out.setAttribute("aria-hidden", "true");
     slider.addEventListener("input",() => {value[key]=Number(slider.value);out.textContent=value[key] + " / 10";persist();});
     const lab = el("label"); lab.append(append(el("span","range-caption"),el("span","input-label",label),out),slider);
     row.append(lab,append(el("div","range-ends"),el("span","","0"),el("span","","10")));box.append(row);
