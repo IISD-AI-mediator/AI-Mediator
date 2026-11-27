@@ -4,3 +4,4 @@ __pycache__/
 .venv/
 instance/
 .pytest_cache/
+*.[pP][dD][fF]
