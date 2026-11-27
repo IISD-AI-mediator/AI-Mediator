@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: free
     region: singapore
-    branch: develop
+    branch: main
     buildCommand: >-
       pip install -r requirements.txt && python scripts/check_live_providers.py
     startCommand: waitress-serve --listen=0.0.0.0:$PORT --threads=8 travel_app.wsgi:app
