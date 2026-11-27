@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from travel_app import create_app
+from semantic_fixtures import speech_review
 
 
 ACTIVITIES = ("박물관 관람", "해변 산책")
@@ -17,10 +18,43 @@ DATES = ("2027-04-03", "2027-04-04")
 SOURCE = "https://example.org/restaurant-menu"
 
 
-class MemberResponses:
+class VoiceResponses:
+    def generate_voice(self, instruction, data):
+        if "candidate_speech" in data:
+            return speech_review(**data)
+        message = data["public_message"]
+        if data["value"] is not None:
+            message = message.replace(data["value"], "{value}")
+        opening = {"균형 잡힌 진행자": "의견을 모아 볼게요.",
+                   "다정한 진행자": "편하게 함께 얘기해요.",
+                   "간결한 진행자": "요점을 짚겠습니다."}
+        return {"speech": opening.get(data["persona"]["preset"], "") + message}
+
+
+class MemberResponses(VoiceResponses):
     """Only the external generation and Google response boundary is substituted."""
 
     def generate(self, instruction, data, *, search=False):
+        if "private_request" in data:
+            note = data["private_request"]
+            cases = (
+                ("택시 필수를 대중교통 선호로", "local_transport", "대중교통", "prefer"),
+                ("택시 필수 조건을 대중교통 선호로", "local_transport", "대중교통", "prefer"),
+                ("택시 필수에서 대중교통 선호로", "local_transport", "대중교통", "prefer"),
+                ("대중교통 필수를 택시 선호로", "local_transport", "택시", "prefer"),
+                ("음식 필수를 초밥으로", "food", "초밥", "must"),
+                ("예산 상한을 70만 원으로", "budget", {"amount": 700000, "currency": "KRW"},
+                 data["previous_conditions"].get("budget", {}).get("priority", "prefer")),
+            )
+            return {"requests": [{"field": field, "value": value, "priority": priority, "explicit": True, "quote": note}
+                                 for phrase, field, value, priority in cases
+                                 if phrase in note and field in data["candidates"]]}
+        if "segments" in data:
+            meal = data["criteria"]["food"]
+            assert data["kind"] == "restaurant" and data["criteria"]["lodging"] == "해운대역"
+            affirmative = {f"해운대역 인근 이 식당은 {meal} 메뉴를 판매합니다.",
+                           f"해운대역 인근 이 식당은 {meal}을 판매합니다."}
+            return {"reviews": [{"id": s["id"], "supported": s["text"] in affirmative} for s in data["segments"]]}
         if search:
             if data.get("food") != "삼겹살" or data.get("lodging") != "해운대역":
                 raise AssertionError("The search agent lost the traveller's meal or hotel.")
@@ -49,8 +83,16 @@ class MemberResponses:
         raise AssertionError("Unexpected member generation step")
 
 
-class MediatorResponses:
+class MediatorResponses(VoiceResponses):
     def generate(self, instruction, data, *, search=False):
+        if "requirements" in data:
+            rows = data["days"]
+            assert [(r["date"], r["place"], r["activity"]) for r in rows] == [
+                (date, "부산", activity) for date, activity in zip(DATES, ACTIVITIES)]
+            assert [r["text"] for r in data["requirements"]] == list(ACTIVITIES)
+            return {"plan_valid": False, "approved_days": [0, 1],
+                    "day_venues": [{"id": 0, "names": []}, {"id": 1, "names": []}],
+                    "coverage": [{"requirement_id": 0, "sources": [0]}, {"requirement_id": 1, "sources": [1]}]}
         if "proposals" not in data:
             raise AssertionError("Unexpected mediator generation step")
         return {"entries": {

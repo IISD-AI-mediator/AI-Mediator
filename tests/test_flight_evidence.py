@@ -3,6 +3,7 @@ from datetime import datetime
 from unittest.mock import Mock
 
 from travel_app.models import grounded_search
+from semantic_fixtures import SearchExchange, cited_result
 
 
 class FlightEvidenceTests(unittest.TestCase):
@@ -28,14 +29,11 @@ class FlightEvidenceTests(unittest.TestCase):
         for label, changes, confirmed in cases:
             with self.subTest(label=label):
                 citation = "|".join(f"{k}={v}" for k, v in (parts | changes).items())
-                search = Mock()
-                search.generate.return_value = {"groundingMetadata": {
-                    "webSearchQueries": ["인천 오사카 4월 왕복 항공권"],
-                    "groundingChunks": [{"web": {"title": "예시 운임", "uri": url}}],
-                    "groundingSupports": [{"segment": {"text": citation}, "groundingChunkIndices": [0]}],
-                }}
+                search = SearchExchange("flight", context, [citation], [
+                    {"id": 0, "supported": changes.get("조건", parts["조건"]) == parts["조건"]}])
+                search.candidate = cited_result([citation], [url])
                 result = grounded_search(search, "flight", context)
-                self.assertTrue(search.generate.call_args.kwargs["search"])
+                self.assertEqual([c[2] for c in search.calls], [True, False] if not changes or "조건" in changes else [True])
                 self.assertIsNotNone(datetime.fromisoformat(result["checked_at"]).tzinfo)
                 self.assertEqual(result["sources"][0]["url"], url)
                 self.assertEqual(result["status"], "observed" if confirmed else "verify")

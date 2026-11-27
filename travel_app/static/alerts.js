@@ -32,7 +32,7 @@ export function soundControl() {
   },"quiet sound-toggle");
   function update() {
     const enabled = read("fight-sound",true);
-    button.textContent = enabled ? "파이트 알림음 켜짐" : "파이트 알림음 꺼짐";
+    button.textContent = enabled ? "파이터 모드 알림음 켜짐" : "파이터 모드 알림음 꺼짐";
     button.setAttribute("aria-pressed",String(enabled));
   }
   update(); return button;

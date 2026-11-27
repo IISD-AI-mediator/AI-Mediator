@@ -12,6 +12,7 @@ from urllib.parse import urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from travel_app.config import gemini_api_key
 from travel_app.models import Gemini, ModelError
 
 
@@ -46,7 +47,7 @@ def main():
     version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
     if os.environ.get("PROVIDER_CHECK_VERSION") != version:
         return
-    key = os.environ.get("GEMINI_API_KEY", "")
+    key = gemini_api_key()
     member = Gemini(key, os.getenv("MEMBER_MODEL", "gemini-3.1-flash-lite"), timeout=30)
     judge = Gemini(key, os.getenv("MEDIATOR_MODEL", "gemini-3.8-flash"), timeout=30)
     checks = (("member", member, check_model), ("decision", judge, check_model), ("search", member, check_search))
