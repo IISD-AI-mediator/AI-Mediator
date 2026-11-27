@@ -3,10 +3,10 @@ import secrets
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import Mock
-
+from unittest.mock import patch
 from travel_app import create_app
 from travel_app.models import grounded_search
+from semantic_fixtures import SearchExchange
 
 
 DATES = {"start": "2027-04-03", "end": "2027-04-08"}
@@ -20,20 +20,18 @@ SOLE_BRANCH = "난바역 인근에서 운영하는 식당입니다. 삼겹살을
 LOCAL_MENU = "난바역 인근에서 운영하는 식당입니다. 삼겹살을 판매합니다."
 
 
-def search(kind, detail):
+def search(kind, detail, supported=False):
     if kind == "flight":
         detail = ("출발지=인천|도착지=오사카|가는날=2027-04-03|오는날=2027-04-08|"
                   "출발시각=09:15|금액=640000|통화=KRW|조건=" + detail)
-    adapter = Mock()
-    adapter.generate.return_value = {"groundingMetadata": {
-        "webSearchQueries": ["조건 조회"],
-        "groundingChunks": [{"web": {"title": "여행 정보", "uri": "https://example.org/travel"}}],
-        "groundingSupports": [{"segment": {"text": detail}, "groundingChunkIndices": [0]}]}}
-    return grounded_search(adapter, kind, FLIGHT if kind == "flight" else FOOD)
+    context = FLIGHT if kind == "flight" else FOOD
+    adapter = SearchExchange(kind, context, [detail], [{"id": 0, "supported": supported}])
+    return grounded_search(adapter, kind, context)
 
 
 def old_observation(kind, detail, stamp):
     item = search(kind, detail)
+    item.pop("review_context")
     item.pop("restaurant_criteria", None)  # v1.0.0 did not persist individual search criteria.
     item.update(status="observed", reason="출처와 조회 시각을 기록했어요.", checked_at=stamp)
     source = item["sources"][0]
@@ -48,6 +46,7 @@ class QuoteAndBranchTests(unittest.TestCase):
     def test_fare_requires_explicit_one_passenger_return_and_conditions(self):
         cases = [
             (FARE, True), ("1인 왕복, 세금 포함, 위탁 수하물 별도", True),
+            ("한 사람이 다녀오는 여정, 세금이 포함된 가격, 부치는 짐은 15kg까지", True),
             (PAIR_FARE, False), (ONE_WAY, False), ("왕복, 세금 포함, 위탁 수하물 1개", False),
             ("성인 1인 왕복 여부 미정, 세금 포함, 위탁 수하물 1개", False),
             ("1인 왕복, 세금, 위탁 수하물 1개", False), ("1인 왕복, 세금 포함, 수하물", False),
@@ -56,7 +55,7 @@ class QuoteAndBranchTests(unittest.TestCase):
         ]
         for terms, confirmed in cases:
             with self.subTest(terms=terms):
-                result = search("flight",terms)
+                result = search("flight",terms,confirmed)
                 self.assertEqual(result["status"], "observed" if confirmed else "verify")
                 source = result["sources"][0]
                 if confirmed:
@@ -75,7 +74,7 @@ class QuoteAndBranchTests(unittest.TestCase):
                 ("난바역 지점은 삼겹살을 판매합니다. 실제로는 서울점에서만 판매합니다.",False),
                 ("난바역 지점은 삼겹살을 판매하고 있습니다.",True)]:
             with self.subTest(excerpt=excerpt):
-                result = search("restaurant",excerpt)
+                result = search("restaurant",excerpt,expected)
                 self.assertEqual((result["status"], result["sources"][0]["matched"]),
                                  ("observed" if expected else "verify",expected))
 
@@ -89,7 +88,8 @@ class QuoteAndBranchTests(unittest.TestCase):
             database = app.extensions["travel_store"]
             evidence = [old_observation("flight",PAIR_FARE,"a"),old_observation("restaurant",OTHER_BRANCH,"b"),
                         old_observation("flight",FARE,"c"),old_observation("restaurant",LOCAL_MENU,"d"),
-                        old_observation("restaurant",SOLE_BRANCH,"e")]
+                        old_observation("restaurant",SOLE_BRANCH,"e"),
+                        search("flight",FARE,True),search("restaurant",LOCAL_MENU,True)]
             def populate(room):
                 entries = {k:{"value":v,"status":"agreed","reason":"이전 판단"} for k,v in {"transport":"항공","food":"삼겹살"}.items()}
                 decision = {"entries": entries, "round":1,"conflicts":[],"evidence":copy.deepcopy(evidence),"itinerary":[]}
@@ -97,15 +97,20 @@ class QuoteAndBranchTests(unittest.TestCase):
                             draft=copy.deepcopy(decision),result=decision,history=[{"round":1,"entries":copy.deepcopy(entries)}])
             database.update(invite,populate)
             for _ in range(2):
-                response = member.get(endpoint)
+                with patch("travel_app.models.Gemini.generate", side_effect=AssertionError("Model called during read")):
+                    response = member.get(endpoint)
                 self.assertEqual(response.status_code,200)
                 public = response.get_json()
                 current = public["result"]["evidence"]
-                self.assertEqual([item["status"] for item in current],["verify","verify","observed","observed","verify"])
+                self.assertEqual([item["status"] for item in current],["verify"]*5 + ["observed","observed"])
                 self.assertIsNone(current[0]["sources"][0]["quote"])
                 self.assertFalse(current[1]["sources"][0]["matched"])
-                self.assertEqual(current[2]["sources"][0]["quote"]["amount"],640000)
-                self.assertTrue(current[3]["sources"][0]["matched"])
+                self.assertIsNone(current[2]["sources"][0]["quote"])
+                self.assertFalse(current[3]["sources"][0]["matched"])
+                self.assertEqual(current[5]["sources"][0]["quote"]["amount"],640000)
+                self.assertTrue(current[6]["sources"][0]["matched"])
+                self.assertNotIn("review_context",current[6])
+                self.assertNotIn("review_proof",current[6]["sources"][0])
                 self.assertFalse(current[4]["sources"][0]["matched"])
                 self.assertNotIn("restaurant_criteria",current[1])
                 for key in ("transport","food"):

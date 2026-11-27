@@ -8,7 +8,9 @@ if __name__ == "__main__":
     try:
         from waitress import serve
     except ModuleNotFoundError:
-        app.run(host=host, port=port, threaded=True, use_reloader=False)
+        from werkzeug.serving import run_simple
+
+        run_simple(host, port, app, threaded=True, use_reloader=False)
     else:
         print(f"여행 조율 서버 · http://{host}:{port}", flush=True)
         serve(app, host=host, port=port, threads=8)

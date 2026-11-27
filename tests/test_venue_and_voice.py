@@ -5,19 +5,11 @@ from travel_app.decisions import itinerary, public_sources
 from travel_app.domain import MEDIATOR_STYLES, persona
 from travel_app.graph import Workflow
 from travel_app.models import grounded_search
+from test_group_travel import VoiceResponses
+from semantic_fixtures import SearchExchange
 
 
-class CitedResponse:
-    def __init__(self, excerpt):
-        self.excerpt = excerpt
-
-    def generate(self, instruction, data, *, search=False):
-        return {"groundingMetadata": {
-            "webSearchQueries": ["오사카 여행"], "groundingChunks": [{"web": {"title": "관광 안내", "uri": "https://example.com/place"}}],
-            "groundingSupports": [{"segment": {"text": self.excerpt}, "groundingChunkIndices": [0]}]}}
-
-
-class Judge:
+class Judge(VoiceResponses):
     def __init__(self):
         self.inputs = []
 
@@ -46,7 +38,10 @@ class VenueAndVoiceTests(unittest.TestCase):
         for kind in ("lodging", "activity"):
             for excerpt, name, status, expected in cases:
                 with self.subTest(kind=kind, excerpt=excerpt):
-                    evidence = grounded_search(CitedResponse(excerpt), kind, {"destination":"오사카"})
+                    criteria = {"destination":"오사카"}
+                    result = {"id":0, "supported":status == "observed", "venue":name}
+                    adapter = SearchExchange(kind, criteria, [excerpt], [result])
+                    evidence = grounded_search(adapter, kind, criteria)
                     self.assertEqual(evidence["status"], status)
                     row = {"date":"2027-04-01","base":"오사카","place":name}
                     day = itinerary(entries,[row],[],[evidence])[0]
@@ -65,7 +60,10 @@ class VenueAndVoiceTests(unittest.TestCase):
                 ("Hyeopjae Beach is located in Osaka?", "verify"),
             ):
                 with self.subTest(kind=kind, phrase=phrase):
-                    self.assertEqual(grounded_search(CitedResponse(phrase), kind, {"destination":"Osaka"})["status"],expected)
+                    criteria = {"destination":"Osaka"}
+                    result = {"id":0, "supported":expected == "observed", "venue":"Dotonbori"}
+                    adapter = SearchExchange(kind, criteria, [phrase], [result])
+                    self.assertEqual(grounded_search(adapter, kind, criteria)["status"],expected)
 
     def test_mediator_preset_changes_only_public_expression(self):
         judge = Judge()

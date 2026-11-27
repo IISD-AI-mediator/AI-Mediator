@@ -96,22 +96,23 @@ export function normalizedPersona(value, presets) {
   const base = {preset:presets[0],aggression:5,politeness:5,mz:5,instruction:""};
   return typeof value === "string" ? {...base,preset:value} : {...base,...value};
 }
-export function personaEditor(title, value, presets, persist) {
-  const box = formSection(title,"세 수치와 말투는 파이트 모드에서 이 화자의 표현에 적용돼요.");
+export function personaEditor(title, value, presets, persist, description = "내 에이전트가 첫 제안과 토론 발언을 작성할 때 여기에 적은 성격과 말투를 사용해요.") {
+  const box = formSection(title, description);
   const preset = selectControl(presets,value.preset);
   preset.addEventListener("change",() => {value.preset=preset.value;persist();});
   box.append(labeled("기본 성향",preset));
   for (const [key,label] of [["aggression","공격성"],["politeness","예의"],["mz","MZ 감성"]]) {
     const slider = input("range",value[key]); slider.min = "0"; slider.max = "10"; slider.step = "1"; slider.value = String(value[key]);
-    const row = el("div","persona-range"), out = el("output","range-value",value[key] + " / 10");
+    const row = el("div","persona-range"), out = el("span","range-value",value[key] + " / 10");
+    out.setAttribute("aria-hidden", "true");
     slider.addEventListener("input",() => {value[key]=Number(slider.value);out.textContent=value[key] + " / 10";persist();});
     const lab = el("label"); lab.append(append(el("span","range-caption"),el("span","input-label",label),out),slider);
     row.append(lab,append(el("div","range-ends"),el("span","","0"),el("span","","10")));box.append(row);
   }
   const custom = el("textarea"); custom.rows = 2; custom.maxLength = 180; custom.value = value.instruction;
-  custom.placeholder = "예: 부드러운 질문으로 말해 줘.";
+  custom.placeholder = "예: 심야 라디오 DJ처럼 차분하게 이야기하고 짧은 질문으로 마쳐 줘.";
   custom.addEventListener("input",() => {value.instruction=custom.value;persist();});
-  box.append(labeled("원하는 말투 · 선택",custom)); return box;
+  box.append(labeled("원하는 성격과 말투 · 선택",custom)); return box;
 }
 export function profileBody(draft) {
   return {preferences: collect(draft, true), persona: normalizedPersona(draft.persona,setup.agentStyles), extra: draft.extra || ""};
@@ -124,7 +125,7 @@ export function profileSummary(body) {
   if (!Object.keys(body.preferences).length) box.append(el("p", "muted", "여행 조건을 모두 에이전트에게 맡겼어요."));
   const character = normalizedPersona(body.persona,setup.agentStyles);
   detail.append(line("내 에이전트 성향", character.preset + " · 공격성 " + character.aggression + " · 예의 " + character.politeness + " · MZ 감성 " + character.mz));
-  if (character.instruction) detail.append(line("원하는 말투",character.instruction));
+  if (character.instruction) detail.append(line("원하는 성격과 말투",character.instruction));
   if (body.extra) detail.append(line("나만의 추가 요청", body.extra));
   box.append(detail); return box;
 }

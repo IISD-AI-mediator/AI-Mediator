@@ -1,2 +1,286 @@
 <?xml version='1.0' encoding='utf-8'?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 852" width="1100" height="852" role="img" aria-labelledby="title description" font-family="Malgun Gothic, Apple SD Gothic Neo, Noto Sans CJK KR, sans-serif"><title id="title">동행 여행 조율 · LangGraph 실행 그래프</title><desc id="description">실행 중 사용하는 세 컴파일 그래프의 노드와 연결을 읽어 표시했다. 하단 표는 협상 그래프의 재진입 및 반환 경로다.</desc><defs><marker id="arrow" viewBox="0 0 9 9" refX="7" refY="4.5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 8 4.5 L 0 9 z" fill="#525e57" /></marker></defs><rect x="0" y="0" width="1100" height="852" rx="0" fill="#f6f7f5" stroke="none" /><text x="26" y="39" font-size="14" font-weight="700" fill="#536359" text-anchor="start">AI–MEDIATOR  /  LANGGRAPH</text><text x="26" y="79" font-size="33" font-weight="750" fill="#222725" text-anchor="start">동행의 여행 조율 과정</text><text x="1080" y="81" font-size="14" font-weight="500" fill="#526059" text-anchor="end">실선 · 기본 연결   /   점선 · 조건 분기</text><g data-graph="travel_negotiation"><rect x="22" y="122" width="423" height="482" rx="12" fill="white" stroke="#d4d8d5" /><text x="42" y="155" font-size="20" font-weight="700" fill="#222725" text-anchor="start">방의 협상 단계</text><text x="42" y="181" font-size="13" font-weight="400" fill="#526059" text-anchor="start">합의 여부와 발언 순서에 따라 다음 단계로 이동한다.</text><path d="M 231.82000000000002 477 C 268.82000000000005 453, 268.82000000000005 513, 233.82000000000002 490" fill="none" stroke="#525e57" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#arrow)" data-source="floor" data-target="floor"><title>floor → floor</title></path><path d="M 99.82000000000002 483 Q 78.82000000000002 483, 78.82000000000002 473 L 78.82000000000002 365 Q 78.82000000000002 355, 97.82000000000002 355" fill="none" stroke="#525e57" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#arrow)" data-source="floor" data-target="judge"><title>floor → judge</title></path><path d="M 165.82000000000002 503 L 165.82000000000002 524" fill="none" stroke="#525e57" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#arrow)" data-source="floor" data-target="speak"><title>floor → speak</title></path><path d="M 231.82000000000002 355 L 275.48 355" fill="none" stroke="#525e57" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#arrow)" data-source="judge" data-target="final"><title>judge → final</title></path><path d="M 165.82000000000002 375 L 165.82000000000002 396" fill="none" stroke="#525e57" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#arrow)" data-source="judge" data-target="open"><title>judge → open</title></path><path d="M 165.82000000000002 439 L 165.82000000000002 460" fill="none" stroke="#525e57" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#arrow)" data-source="open" data-target="floor"><title>open → floor</title></path><path d="M 165.82000000000002 311 L 165.82000000000002 332" fill="none" stroke="#525e57" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#arrow)" data-source="propose" data-target="judge"><title>propose → judge</title></path><path d="M 231.82000000000002 547 Q 252.82000000000002 547, 252.82000000000002 537 L 252.82000000000002 493 Q 252.82000000000002 483, 233.82000000000002 483" fill="none" stroke="#525e57" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#arrow)" data-source="speak" data-target="floor"><title>speak → floor</title></path><path d="M 165.82000000000002 247 L 165.82000000000002 268" fill="none" stroke="#525e57" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#arrow)" data-source="team" data-target="propose"><title>team → propose</title></path><g data-node="team"><rect x="99.82000000000002" y="207" width="132" height="40" rx="8" fill="white" stroke="#768078" /><text x="165.82000000000002" y="226" font-size="13" font-weight="650" fill="#222725" text-anchor="middle">생성자 · 역할 배정</text><text x="165.82000000000002" y="240" font-size="10" font-weight="400" fill="#59655d" text-anchor="middle">team</text></g><g data-node="propose"><rect x="99.82000000000002" y="271" width="132" height="40" rx="8" fill="white" stroke="#768078" /><text x="165.82000000000002" y="290" font-size="13" font-weight="650" fill="#222725" text-anchor="middle">제안 작성</text><text x="165.82000000000002" y="304" font-size="10" font-weight="400" fill="#59655d" text-anchor="middle">propose</text></g><g data-node="judge"><rect x="99.82000000000002" y="335" width="132" height="40" rx="8" fill="white" stroke="#768078" /><text x="165.82000000000002" y="354" font-size="13" font-weight="650" fill="#222725" text-anchor="middle">결정자 · 중재</text><text x="165.82000000000002" y="368" font-size="10" font-weight="400" fill="#59655d" text-anchor="middle">judge</text></g><g data-node="open"><rect x="99.82000000000002" y="399" width="132" height="40" rx="8" fill="white" stroke="#768078" /><text x="165.82000000000002" y="418" font-size="13" font-weight="650" fill="#222725" text-anchor="middle">파이트 모드 열기</text><text x="165.82000000000002" y="432" font-size="10" font-weight="400" fill="#59655d" text-anchor="middle">open</text></g><g data-node="floor"><rect x="99.82000000000002" y="463" width="132" height="40" rx="8" fill="white" stroke="#768078" /><text x="165.82000000000002" y="482" font-size="13" font-weight="650" fill="#222725" text-anchor="middle">발언 순서·마감</text><text x="165.82000000000002" y="496" font-size="10" font-weight="400" fill="#59655d" text-anchor="middle">floor</text></g><g data-node="speak"><rect x="99.82000000000002" y="527" width="132" height="40" rx="8" fill="white" stroke="#768078" /><text x="165.82000000000002" y="546" font-size="13" font-weight="650" fill="#222725" text-anchor="middle">개인 발언</text><text x="165.82000000000002" y="560" font-size="10" font-weight="400" fill="#59655d" text-anchor="middle">speak</text></g><g data-node="final"><rect x="277.48" y="335" width="132" height="40" rx="8" fill="white" stroke="#768078" /><text x="343.48" y="354" font-size="13" font-weight="650" fill="#222725" text-anchor="middle">결과 확정</text><text x="343.48" y="368" font-size="10" font-weight="400" fill="#59655d" text-anchor="middle">final</text></g></g><g data-graph="parallel_agents"><rect x="458" y="122" width="305" height="482" rx="12" fill="white" stroke="#d4d8d5" /><text x="478" y="155" font-size="20" font-weight="700" fill="#222725" text-anchor="start">참가자별 병렬 처리</text><text x="478" y="181" font-size="13" font-weight="400" fill="#526059" text-anchor="start">정원만큼 독립된 에이전트에 작업을 배정한다.</text><path d="M 610.5 247 L 610.5 268" fill="none" stroke="#525e57" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#arrow)" data-source="__start__" data-target="personal_agent"><title>__start__ → personal_agent</title></path><path d="M 610.5 311 L 610.5 332" fill="none" stroke="#525e57" stroke-width="1.8" stroke-dasharray="none" marker-end="url(#arrow)" data-source="personal_agent" data-target="__end__"><title>personal_agent → __end__</title></path><g data-node="__start__"><rect x="544.5" y="207" width="132" height="40" rx="8" fill="#eef1ee" stroke="#768078" /><text x="610.5" y="226" font-size="13" font-weight="650" fill="#222725" text-anchor="middle">시작</text><text x="610.5" y="240" font-size="10" font-weight="400" fill="#59655d" text-anchor="middle">__start__</text></g><g data-node="personal_agent"><rect x="544.5" y="271" width="132" height="40" rx="8" fill="white" stroke="#768078" /><text x="610.5" y="290" font-size="13" font-weight="650" fill="#222725" text-anchor="middle">참가자별 에이전트</text><text x="610.5" y="304" font-size="10" font-weight="400" fill="#59655d" text-anchor="middle">personal_agent</text></g><g data-node="__end__"><rect x="544.5" y="335" width="132" height="40" rx="8" fill="#eef1ee" stroke="#768078" /><text x="610.5" y="354" font-size="13" font-weight="650" fill="#222725" text-anchor="middle">실행 반환</text><text x="610.5" y="368" font-size="10" font-weight="400" fill="#59655d" text-anchor="middle">__end__</text></g></g><g data-graph="personal_agent"><rect x="776" y="122" width="302" height="482" rx="12" fill="white" stroke="#d4d8d5" /><text x="796" y="155" font-size="20" font-weight="700" fill="#222725" text-anchor="start">개인 에이전트</text><text x="796" y="181" font-size="13" font-weight="400" fill="#526059" text-anchor="start">필요한 검색 근거를 개인 제안에 반영한다.</text><path d="M 927.0 247 L 927.0 268" fill="none" stroke="#525e57" stroke-width="1.8" stroke-dasharray="none" marker-end="url(#arrow)" data-source="__start__" data-target="interpret"><title>__start__ → interpret</title></path><path d="M 993.0 291 Q 1014.0 291, 1014.0 301 L 1014.0 409 Q 1014.0 419, 995.0 419" fill="none" stroke="#525e57" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#arrow)" data-source="interpret" data-target="propose"><title>interpret → propose</title></path><path d="M 927.0 311 L 927.0 332" fill="none" stroke="#525e57" stroke-width="1.8" stroke-dasharray="4 3" marker-end="url(#arrow)" data-source="interpret" data-target="search"><title>interpret → search</title></path><path d="M 927.0 375 L 927.0 396" fill="none" stroke="#525e57" stroke-width="1.8" stroke-dasharray="none" marker-end="url(#arrow)" data-source="search" data-target="propose"><title>search → propose</title></path><path d="M 927.0 439 L 927.0 460" fill="none" stroke="#525e57" stroke-width="1.8" stroke-dasharray="none" marker-end="url(#arrow)" data-source="propose" data-target="__end__"><title>propose → __end__</title></path><g data-node="__start__"><rect x="861.0" y="207" width="132" height="40" rx="8" fill="#eef1ee" stroke="#768078" /><text x="927.0" y="226" font-size="13" font-weight="650" fill="#222725" text-anchor="middle">시작</text><text x="927.0" y="240" font-size="10" font-weight="400" fill="#59655d" text-anchor="middle">__start__</text></g><g data-node="interpret"><rect x="861.0" y="271" width="132" height="40" rx="8" fill="white" stroke="#768078" /><text x="927.0" y="290" font-size="13" font-weight="650" fill="#222725" text-anchor="middle">개인 조건 해석</text><text x="927.0" y="304" font-size="10" font-weight="400" fill="#59655d" text-anchor="middle">interpret</text></g><g data-node="search"><rect x="861.0" y="335" width="132" height="40" rx="8" fill="white" stroke="#768078" /><text x="927.0" y="354" font-size="13" font-weight="650" fill="#222725" text-anchor="middle">외부 근거 검색</text><text x="927.0" y="368" font-size="10" font-weight="400" fill="#59655d" text-anchor="middle">search</text></g><g data-node="propose"><rect x="861.0" y="399" width="132" height="40" rx="8" fill="white" stroke="#768078" /><text x="927.0" y="418" font-size="13" font-weight="650" fill="#222725" text-anchor="middle">제안 작성</text><text x="927.0" y="432" font-size="10" font-weight="400" fill="#59655d" text-anchor="middle">propose</text></g><g data-node="__end__"><rect x="861.0" y="463" width="132" height="40" rx="8" fill="#eef1ee" stroke="#768078" /><text x="927.0" y="482" font-size="13" font-weight="650" fill="#222725" text-anchor="middle">실행 반환</text><text x="927.0" y="496" font-size="10" font-weight="400" fill="#59655d" text-anchor="middle">__end__</text></g></g><g data-graph="travel_negotiation" data-view="resume-and-return"><rect x="22" y="621" width="1056" height="204" rx="12" fill="white" stroke="#d4d8d5" /><text x="43" y="656" font-size="20" font-weight="700" fill="#222725" text-anchor="start">재시작과 대기 경로</text><text x="43" y="680" font-size="13" font-weight="400" fill="#526059" text-anchor="start">작업 임대와 저장된 단계에 따라 실행을 재개하거나 다음 실행까지 제어를 반환한다.</text><g data-source="__start__" data-target="resume"><title>__start__ → resume</title></g><g data-source="final" data-target="__end__"><title>final → __end__</title></g><g data-source="floor" data-target="__end__"><title>floor → __end__</title></g><g data-source="judge" data-target="__end__"><title>judge → __end__</title></g><g data-source="open" data-target="__end__"><title>open → __end__</title></g><g data-source="propose" data-target="__end__"><title>propose → __end__</title></g><g data-source="resume" data-target="__end__"><title>resume → __end__</title></g><g data-source="resume" data-target="final"><title>resume → final</title></g><g data-source="resume" data-target="floor"><title>resume → floor</title></g><g data-source="resume" data-target="judge"><title>resume → judge</title></g><g data-source="resume" data-target="open"><title>resume → open</title></g><g data-source="resume" data-target="propose"><title>resume → propose</title></g><g data-source="resume" data-target="speak"><title>resume → speak</title></g><g data-source="resume" data-target="team"><title>resume → team</title></g><g data-source="speak" data-target="__end__"><title>speak → __end__</title></g><g data-source="team" data-target="__end__"><title>team → __end__</title></g><text x="43" y="711" font-size="14" font-weight="500" fill="#222725" text-anchor="start">__start__   →   resume</text><text x="43" y="748" font-size="14" font-weight="500" fill="#222725" text-anchor="start">final · floor · judge · open · propose · speak · team   →   __end__</text><text x="43" y="785" font-size="14" font-weight="500" fill="#222725" text-anchor="start">resume   →   __end__ · final · floor · judge · open · propose · speak · team</text></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" width="1600" height="1100" role="img" aria-labelledby="title description" font-family="Malgun Gothic, Apple SD Gothic Neo, Noto Sans CJK KR, sans-serif">
+  <title id="title">여행 협상의 역할과 책임</title>
+  <desc id="description">생성자가 역할을 배정한다. 협상 실행기는 Send로 개인 에이전트를 병렬 호출한다. 개인 에이전트는 각자의 조건을 해석하고 필요할 때 검색해 제안을 낸다. 리듀서가 결과를 모으면 실행기가 전원을 확인한다. 판사는 충돌과 남은 회차에 따라 토론을 열거나 최종안을 게시하도록 한다. 토론 중에는 발언 순서를 관리하고 마감 후 대기 발언과 지시를 모두 처리해 다시 판단한다. 실행기는 방 DB의 단계에서 재개한다.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0 0L8 4L0 8Z" fill="#485f64" />
+    </marker>
+    <marker id="return-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0 0L8 4L0 8Z" fill="#895023" />
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1600" height="1100" rx="0" fill="#f8f8f3" stroke="none" stroke-width="1.5" />
+  <text x="40" y="36" font-size="15" font-weight="700" fill="#116657" text-anchor="start">AI–MEDIATOR   /   LANGGRAPH</text>
+  <text x="40" y="82" font-size="40" font-weight="700" fill="#182d32" text-anchor="start">여행 협상의 역할과 책임</text>
+  <text x="42" y="115" font-size="19" font-weight="400" fill="#485f64" text-anchor="start">생성자가 역할을 나누고, 개인 에이전트가 제안하며, 판사가 토론과 확정을 결정한다.</text>
+  <path d="M955 82 h34" fill="none" stroke="#485f64" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)" />
+  <text x="999" y="88" font-size="15" font-weight="600" fill="#485f64" text-anchor="start">기본 전이</text>
+  <path d="M1100 82 h34" fill="none" stroke="#485f64" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5" marker-end="url(#arrow)" />
+  <text x="1144" y="88" font-size="15" font-weight="600" fill="#485f64" text-anchor="start">조건 전이</text>
+  <path d="M1245 82 h34" fill="none" stroke="#895023" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5" marker-end="url(#return-arrow)" />
+  <text x="1289" y="88" font-size="15" font-weight="600" fill="#895023" text-anchor="start">반복 전이</text>
+  <path d="M1390 82 h34" fill="none" stroke="#245499" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="2 5" />
+  <text x="1434" y="88" font-size="15" font-weight="600" fill="#245499" text-anchor="start">호출 상세</text>
+  <path d="M40 140 H1560" fill="none" stroke="#aabbb9" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" />
+  <g data-graph="travel_negotiation">
+    <text x="42" y="176" font-size="24" font-weight="700" fill="#182d32" text-anchor="start">방 단위 협상</text>
+    <text x="213" y="175" font-size="16" font-weight="500" fill="#485f64" text-anchor="start">travel_negotiation</text>
+    <rect x="856" y="303" width="721" height="195" rx="13" fill="#faf4ea" stroke="#d8c6ad" stroke-width="1.5" />
+    <text x="872" y="338" font-size="19" font-weight="700" fill="#895023" text-anchor="start">쟁점 토론</text>
+    <g data-source="team" data-target="propose" data-conditional="true">
+      <title>team → propose</title>
+      <path d="M254 242 H296" fill="none" stroke="#485f64" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5" marker-end="url(#arrow)" />
+    </g>
+    <g data-source="propose" data-target="judge" data-conditional="true">
+      <title>propose → judge</title>
+      <path d="M545 242 H597" fill="none" stroke="#485f64" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5" marker-end="url(#arrow)" />
+    </g>
+    <g data-source="judge" data-target="final" data-conditional="true">
+      <title>judge → final</title>
+      <path d="M839 242 H1330" fill="none" stroke="#485f64" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5" marker-end="url(#arrow)" />
+    </g>
+    <g data-source="judge" data-target="open" data-conditional="true">
+      <title>judge → open</title>
+      <path d="M781 297 V402 H869" fill="none" stroke="#485f64" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5" marker-end="url(#arrow)" />
+    </g>
+    <g data-source="open" data-target="floor" data-conditional="true">
+      <title>open → floor</title>
+      <path d="M1050 402 H1086" fill="none" stroke="#485f64" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5" marker-end="url(#arrow)" />
+    </g>
+    <g data-source="floor" data-target="speak" data-conditional="true">
+      <title>floor → speak</title>
+      <path d="M1284 402 H1382" fill="none" stroke="#485f64" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5" marker-end="url(#arrow)" />
+    </g>
+    <g data-source="floor" data-target="floor" data-conditional="true">
+      <title>floor → floor</title>
+      <path d="M1161 351 V331 H1219 V349" fill="none" stroke="#895023" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5" marker-end="url(#return-arrow)" />
+    </g>
+    <g data-source="speak" data-target="floor" data-conditional="true">
+      <title>speak → floor</title>
+      <path d="M1474 455 V477 H1243 V457" fill="none" stroke="#895023" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5" marker-end="url(#return-arrow)" />
+    </g>
+    <g data-source="floor" data-target="judge" data-conditional="true">
+      <title>floor → judge</title>
+      <path d="M1112 455 V533 H722 V299" fill="none" stroke="#895023" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5" marker-end="url(#return-arrow)" />
+    </g>
+    <text x="1085" y="229" font-size="17" font-weight="700" fill="#485f64" text-anchor="middle">충돌 없음 또는 토론 회차 소진</text>
+    <text x="787" y="365" font-size="14" font-weight="600" fill="#485f64" text-anchor="start">충돌 있고</text>
+    <text x="787" y="388" font-size="14" font-weight="600" fill="#485f64" text-anchor="start">회차 남음</text>
+    <text x="1334" y="391" font-size="14" font-weight="600" fill="#485f64" text-anchor="middle">차례·지시 있음</text>
+    <text x="1190" y="323" font-size="14" font-weight="600" fill="#895023" text-anchor="middle">순서 재확인</text>
+    <text x="1358" y="496" font-size="14" font-weight="600" fill="#895023" text-anchor="middle">발언 후</text>
+    <text x="906" y="524" font-size="15" font-weight="600" fill="#895023" text-anchor="middle">마감 후 대기 발언·지시 처리 완료</text>
+    <g data-node="team">
+      <rect x="40" y="193" width="214" height="103" rx="10" fill="#e7f2ed" stroke="#116657" stroke-width="1.5" />
+      <text x="54" y="217" font-size="15" font-weight="700" fill="#116657" text-anchor="start">생성자</text>
+      <text x="241" y="217" font-size="14" font-weight="500" fill="#116657" text-anchor="end">team</text>
+      <text x="54" y="252" font-size="21" font-weight="700" fill="#182d32" text-anchor="start">역할 배정</text>
+      <text x="54" y="278" font-size="14" font-weight="400" fill="#485f64" text-anchor="start">참가자별 임무와 조건 배정</text>
+    </g>
+    <g data-node="propose">
+      <rect x="299" y="193" width="246" height="103" rx="10" fill="#eaf0f9" stroke="#245499" stroke-width="1.5" />
+      <text x="313" y="217" font-size="15" font-weight="700" fill="#245499" text-anchor="start">협상 실행기</text>
+      <text x="532" y="217" font-size="14" font-weight="500" fill="#245499" text-anchor="end">propose</text>
+      <text x="313" y="252" font-size="21" font-weight="700" fill="#182d32" text-anchor="start">개인 제안 수집</text>
+      <text x="313" y="278" font-size="14" font-weight="400" fill="#485f64" text-anchor="start">참가자 전원의 제안 확인</text>
+    </g>
+    <g data-node="judge">
+      <rect x="599" y="193" width="240" height="103" rx="10" fill="#f7ead7" stroke="#895023" stroke-width="1.5" />
+      <text x="613" y="217" font-size="15" font-weight="700" fill="#895023" text-anchor="start">판사 에이전트</text>
+      <text x="826" y="217" font-size="14" font-weight="500" fill="#895023" text-anchor="end">judge</text>
+      <text x="613" y="252" font-size="21" font-weight="700" fill="#182d32" text-anchor="start">여행 조건 판정</text>
+      <text x="613" y="278" font-size="14" font-weight="400" fill="#485f64" text-anchor="start">제안·근거·이전 판단을 함께 검토</text>
+    </g>
+    <g data-node="final">
+      <rect x="1333" y="193" width="227" height="103" rx="10" fill="#eaf0f9" stroke="#245499" stroke-width="1.5" />
+      <text x="1347" y="217" font-size="15" font-weight="700" fill="#245499" text-anchor="start">협상 실행기</text>
+      <text x="1547" y="217" font-size="14" font-weight="500" fill="#245499" text-anchor="end">final</text>
+      <text x="1347" y="252" font-size="21" font-weight="700" fill="#182d32" text-anchor="start">최종 여행안 게시</text>
+      <text x="1347" y="278" font-size="14" font-weight="400" fill="#485f64" text-anchor="start">확정 조건과 미해결 항목 기록</text>
+    </g>
+    <g data-node="open">
+      <rect x="872" y="352" width="178" height="103" rx="10" fill="white" stroke="#895023" stroke-width="1.5" />
+      <text x="886" y="376" font-size="15" font-weight="700" fill="#895023" text-anchor="start">판사 에이전트</text>
+      <text x="1037" y="376" font-size="14" font-weight="500" fill="#895023" text-anchor="end">open</text>
+      <text x="886" y="411" font-size="21" font-weight="700" fill="#182d32" text-anchor="start">토론 열기</text>
+      <text x="886" y="437" font-size="14" font-weight="400" fill="#485f64" text-anchor="start">쟁점 공지와 대기열 생성</text>
+    </g>
+    <g data-node="floor">
+      <rect x="1089" y="352" width="195" height="103" rx="10" fill="white" stroke="#245499" stroke-width="1.5" />
+      <text x="1103" y="376" font-size="15" font-weight="700" fill="#245499" text-anchor="start">발언 진행 시스템</text>
+      <text x="1271" y="376" font-size="14" font-weight="500" fill="#245499" text-anchor="end">floor</text>
+      <text x="1103" y="411" font-size="21" font-weight="700" fill="#182d32" text-anchor="start">발언자 지정</text>
+      <text x="1103" y="437" font-size="14" font-weight="400" fill="#485f64" text-anchor="start">대기열·미처리 지시 확인</text>
+    </g>
+    <g data-node="speak">
+      <rect x="1385" y="352" width="175" height="103" rx="10" fill="white" stroke="#64458d" stroke-width="1.5" />
+      <text x="1399" y="376" font-size="15" font-weight="700" fill="#64458d" text-anchor="start">개인 에이전트</text>
+      <text x="1547" y="376" font-size="14" font-weight="500" fill="#64458d" text-anchor="end">speak</text>
+      <text x="1399" y="411" font-size="21" font-weight="700" fill="#182d32" text-anchor="start">입장 발언</text>
+      <text x="1399" y="437" font-size="14" font-weight="400" fill="#485f64" text-anchor="start">지시·희망 조건 반영</text>
+    </g>
+    <g data-view="resume-and-return">
+      <path d="M40 911 H1560" fill="none" stroke="#aabbb9" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" />
+      <text x="41" y="948" font-size="23" font-weight="700" fill="#182d32" text-anchor="start">실행기의 재진입과 반환</text>
+      <text x="41" y="979" font-size="16" font-weight="400" fill="#485f64" text-anchor="start">방 DB에 저장된 단계와 실행 시각을 확인한다.</text>
+      <text x="41" y="1006" font-size="16" font-weight="400" fill="#485f64" text-anchor="start">대기 중인 방은 마감이나 새 지시에 다시 실행한다.</text>
+      <g data-node="__start__">
+        <text x="530" y="947" font-size="19" font-weight="700" fill="#182d32" text-anchor="start">시작</text>
+        <text x="530" y="973" font-size="15" font-weight="500" fill="#485f64" text-anchor="start">__start__</text>
+        <text x="530" y="1000" font-size="15" font-weight="400" fill="#182d32" text-anchor="start">방 실행 요청</text>
+      </g>
+      <g data-node="resume">
+        <text x="815" y="947" font-size="19" font-weight="700" fill="#182d32" text-anchor="start">저장 단계 확인</text>
+        <text x="815" y="973" font-size="15" font-weight="500" fill="#485f64" text-anchor="start">resume</text>
+        <text x="815" y="1000" font-size="15" font-weight="400" fill="#182d32" text-anchor="start">실행 시각이 되면 해당 단계로 재개</text>
+      </g>
+      <g data-node="__end__">
+        <text x="1241" y="947" font-size="19" font-weight="700" fill="#182d32" text-anchor="start">호출 반환</text>
+        <text x="1241" y="973" font-size="15" font-weight="500" fill="#485f64" text-anchor="start">__end__</text>
+        <text x="1241" y="1000" font-size="15" font-weight="400" fill="#182d32" text-anchor="start">대기·오류·완료 시 이번 호출 종료</text>
+      </g>
+      <g data-source="__start__" data-target="resume" data-conditional="false">
+        <title>__start__ → resume</title>
+        <path d="M604 940 H800" fill="none" stroke="#485f64" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)" />
+      </g>
+      <g data-source="resume" data-target="__end__" data-conditional="true">
+        <title>resume → __end__</title>
+        <path d="M986 940 H1224" fill="none" stroke="#485f64" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5" marker-end="url(#arrow)" />
+      </g>
+      <g data-source="resume" data-target="team" data-conditional="true">
+        <title>resume → team</title>
+      </g>
+      <g data-source="team" data-target="__end__" data-conditional="true">
+        <title>team → __end__</title>
+      </g>
+      <g data-source="resume" data-target="propose" data-conditional="true">
+        <title>resume → propose</title>
+      </g>
+      <g data-source="propose" data-target="__end__" data-conditional="true">
+        <title>propose → __end__</title>
+      </g>
+      <g data-source="resume" data-target="judge" data-conditional="true">
+        <title>resume → judge</title>
+      </g>
+      <g data-source="judge" data-target="__end__" data-conditional="true">
+        <title>judge → __end__</title>
+      </g>
+      <g data-source="resume" data-target="open" data-conditional="true">
+        <title>resume → open</title>
+      </g>
+      <g data-source="open" data-target="__end__" data-conditional="true">
+        <title>open → __end__</title>
+      </g>
+      <g data-source="resume" data-target="floor" data-conditional="true">
+        <title>resume → floor</title>
+      </g>
+      <g data-source="floor" data-target="__end__" data-conditional="true">
+        <title>floor → __end__</title>
+      </g>
+      <g data-source="resume" data-target="speak" data-conditional="true">
+        <title>resume → speak</title>
+      </g>
+      <g data-source="speak" data-target="__end__" data-conditional="true">
+        <title>speak → __end__</title>
+      </g>
+      <g data-source="resume" data-target="final" data-conditional="true">
+        <title>resume → final</title>
+      </g>
+      <g data-source="final" data-target="__end__" data-conditional="true">
+        <title>final → __end__</title>
+      </g>
+      <text x="530" y="1031" font-size="15" font-weight="600" fill="#485f64" text-anchor="start">resume → 저장된 협상 단계     /     모든 협상 단계 → 호출 반환 가능</text>
+    </g>
+  </g>
+  <g data-graph="parallel_agents">
+    <path d="M422 298 V551" fill="none" stroke="#245499" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="2 5" />
+    <text x="443" y="414" font-size="17" font-weight="700" fill="#245499" text-anchor="start">하위 그래프 호출</text>
+    <text x="443" y="440" font-size="16" font-weight="400" fill="#485f64" text-anchor="start">참가자별 제안 수집</text>
+    <rect x="40" y="552" width="1520" height="328" rx="15" fill="#eff4fa" stroke="#bbcbdc" stroke-width="1.5" />
+    <text x="63" y="592" font-size="25" font-weight="700" fill="#182d32" text-anchor="start">참가자별 병렬 제안</text>
+    <text x="306" y="592" font-size="16" font-weight="500" fill="#245499" text-anchor="start">parallel_agents</text>
+    <g data-node="__start__">
+      <circle cx="78" cy="742" r="5" fill="#182d32" />
+      <text x="78" y="768" font-size="14" font-weight="600" fill="#485f64" text-anchor="middle">시작</text>
+    </g>
+    <g data-source="__start__" data-target="personal_agent" data-conditional="true">
+      <title>__start__ → personal_agent</title>
+      <path d="M85 742 H344" fill="none" stroke="#485f64" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5" marker-end="url(#arrow)" />
+    </g>
+    <text x="213" y="726" font-size="20" font-weight="700" fill="#245499" text-anchor="middle">Send × 참가자 수</text>
+    <text x="213" y="770" font-size="15" font-weight="400" fill="#485f64" text-anchor="middle">개인 조건·역할을 1건씩 전달</text>
+    <g data-node="personal_agent">
+      <rect x="356" y="617" width="746" height="226" rx="10" fill="#dde4f1" stroke="#adbbce" stroke-width="1.5" />
+      <rect x="351" y="622" width="746" height="226" rx="10" fill="#e7eaf4" stroke="#adbbce" stroke-width="1.5" />
+      <rect x="346" y="627" width="746" height="226" rx="10" fill="white" stroke="#9184aa" stroke-width="1.5" />
+      <text x="368" y="665" font-size="23" font-weight="700" fill="#64458d" text-anchor="start">개인 에이전트</text>
+      <text x="1070" y="665" font-size="16" font-weight="600" fill="#64458d" text-anchor="end">personal_agent × N</text>
+    </g>
+    <g data-source="personal_agent" data-target="__end__" data-conditional="false">
+      <title>personal_agent → __end__</title>
+      <path d="M1103 742 H1510" fill="none" stroke="#485f64" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)" />
+    </g>
+    <g data-node="__end__">
+      <circle cx="1518" cy="742" r="5" fill="#182d32" />
+      <text x="1518" y="768" font-size="14" font-weight="600" fill="#485f64" text-anchor="middle">반환</text>
+    </g>
+    <text x="1138" y="693" font-size="18" font-weight="700" fill="#245499" text-anchor="start">결과 병합</text>
+    <text x="1138" y="722" font-size="16" font-weight="400" fill="#182d32" text-anchor="start">answers 리듀서가 제안 목록을 병합 (operator.add)</text>
+    <text x="1138" y="785" font-size="17" font-weight="700" fill="#245499" text-anchor="start">상위 propose</text>
+    <text x="1138" y="815" font-size="16" font-weight="400" fill="#182d32" text-anchor="start">모든 제안을 확인해 판사에게 전달한다.</text>
+  </g>
+  <g data-graph="personal_agent">
+    <g data-source="__start__" data-target="interpret" data-conditional="false">
+      <title>__start__ → interpret</title>
+      <path d="M385 742 H416" fill="none" stroke="#485f64" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)" />
+    </g>
+    <g data-source="interpret" data-target="search" data-conditional="true">
+      <title>interpret → search</title>
+      <path d="M571 742 H650" fill="none" stroke="#485f64" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5" marker-end="url(#arrow)" />
+    </g>
+    <g data-source="interpret" data-target="propose" data-conditional="true">
+      <title>interpret → propose</title>
+      <path d="M495 778 V820 H861 V762 H884" fill="none" stroke="#485f64" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 5" marker-end="url(#arrow)" />
+    </g>
+    <g data-source="search" data-target="propose" data-conditional="false">
+      <title>search → propose</title>
+      <path d="M819 742 H884" fill="none" stroke="#485f64" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)" />
+    </g>
+    <g data-source="propose" data-target="__end__" data-conditional="false">
+      <title>propose → __end__</title>
+      <path d="M1033 742 H1063" fill="none" stroke="#485f64" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)" />
+    </g>
+    <text x="610" y="731" font-size="14" font-weight="600" fill="#485f64" text-anchor="middle">항목 있음</text>
+    <text x="674" y="812" font-size="15" font-weight="600" fill="#485f64" text-anchor="middle">검색 항목 없음</text>
+    <g data-node="__start__">
+      <circle cx="379" cy="742" r="5" fill="#182d32" />
+      <text x="379" y="768" font-size="14" font-weight="600" fill="#485f64" text-anchor="middle">시작</text>
+    </g>
+    <g data-node="__end__">
+      <circle cx="1070" cy="742" r="5" fill="#182d32" />
+      <text x="1070" y="768" font-size="14" font-weight="600" fill="#485f64" text-anchor="middle">반환</text>
+    </g>
+    <g data-node="interpret">
+      <rect x="418" y="710" width="153" height="68" rx="7" fill="#f4f1f8" stroke="#b7a8c8" stroke-width="1.5" />
+      <text x="494.5" y="739" font-size="18" font-weight="700" fill="#182d32" text-anchor="middle">개인 조건 해석</text>
+      <text x="494.5" y="764" font-size="14" font-weight="400" fill="#485f64" text-anchor="middle">검색 항목 · searches</text>
+    </g>
+    <g data-node="search">
+      <rect x="652" y="710" width="167" height="68" rx="7" fill="#f4f1f8" stroke="#b7a8c8" stroke-width="1.5" />
+      <text x="735.5" y="739" font-size="18" font-weight="700" fill="#182d32" text-anchor="middle">Google 근거 검색</text>
+      <text x="735.5" y="764" font-size="14" font-weight="400" fill="#485f64" text-anchor="middle">검색 근거 · evidence</text>
+    </g>
+    <g data-node="propose">
+      <rect x="886" y="710" width="147" height="68" rx="7" fill="#f4f1f8" stroke="#b7a8c8" stroke-width="1.5" />
+      <text x="959.5" y="739" font-size="18" font-weight="700" fill="#182d32" text-anchor="middle">개인 제안 작성</text>
+      <text x="959.5" y="764" font-size="14" font-weight="400" fill="#485f64" text-anchor="middle">조건·근거 반영</text>
+    </g>
+  </g>
+  <path d="M40 1050 H1560" fill="none" stroke="#aabbb9" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" />
+  <text x="41" y="1082" font-size="16" font-weight="700" fill="#182d32" text-anchor="start">강의 개념</text>
+  <text x="147" y="1082" font-size="15" font-weight="500" fill="#485f64" text-anchor="start">7주차 61·105쪽  상태와 리듀서</text>
+  <text x="472" y="1082" font-size="15" font-weight="500" fill="#485f64" text-anchor="start">8주차 4–6쪽  조건 전이</text>
+  <text x="775" y="1082" font-size="15" font-weight="500" fill="#485f64" text-anchor="start">9주차 70·73쪽  Send 병렬 실행</text>
+  <text x="1137" y="1082" font-size="15" font-weight="500" fill="#485f64" text-anchor="start">11주차 59·62쪽  역할과 서브그래프</text>
+</svg>
