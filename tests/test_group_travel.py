@@ -119,8 +119,7 @@ class GroupTravelTests(unittest.TestCase):
         self.clock = TestClock()
         for module in ("travel_app.graph.time", "travel_app.store.time"):
             self.enterContext(patch(module, self.clock))
-        self.config = {"DATABASE_URL": str(Path(self.temp) / "room.sqlite"),
-                       "ROOM_CREATE_CODE": "travel-team", "FIGHT_SECONDS": 45}
+        self.config = {"DATABASE_URL": str(Path(self.temp) / "room.sqlite"), "FIGHT_SECONDS": 45}
         self.app = create_app(self.config, member_model=MemberResponses(), mediator_model=MediatorResponses())
         runner = self.app.extensions["travel_runner"]
         self.addCleanup(runner.thread.join, 5)
@@ -143,9 +142,7 @@ class GroupTravelTests(unittest.TestCase):
         host = self.clients[0]
         fixed = {"destination": "부산", "lodging": "해운대역",
                  "dates": {"start": DATES[0], "end": DATES[1]}}
-        payload = {"team_code": "travel-team", "request_id": secrets.token_hex(16),
-                   "name": "방장", "capacity": 4, "fixed": fixed}
-        self.assertEqual(self.outsider.post("/api/rooms", json={**payload, "team_code": ""}).status_code, 403)
+        payload = {"request_id": secrets.token_hex(16), "name": "방장", "capacity": 4, "fixed": fixed}
         created = host.post("/api/rooms", json=payload)
         self.assertEqual(created.status_code, 200)
         invite = created.get_json()["invite"]

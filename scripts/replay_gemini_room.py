@@ -192,8 +192,7 @@ def run(use_browser, require_generated_openings=False):
         model._generate = record
 
     with tempfile.TemporaryDirectory() as database:
-        code = identity()
-        app = create_app({"DATABASE_URL": str(Path(database) / "test.sqlite"), "ROOM_CREATE_CODE": code,
+        app = create_app({"DATABASE_URL": str(Path(database) / "test.sqlite"),
                           "COOKIE_SECURE": False})
         flow, worker = app.extensions["travel_workflow"], app.extensions["travel_runner"]
         observe(flow.member)
@@ -206,7 +205,7 @@ def run(use_browser, require_generated_openings=False):
         try:
             print("Run record", archive.name, flush=True)
             trace["health"] = host.request("/healthz")
-            invite = host.request("/api/rooms", {"capacity": 2, "name": "서윤", "team_code": code, "request_id": identity(),
+            invite = host.request("/api/rooms", {"capacity": 2, "name": "서윤", "request_id": identity(),
                                                 "fixed": case["fixed"], "mediator": case["judge"]})["invite"]
             path = "/api/rooms/" + invite
             guest.request(path + "/join", {"name": "민재", "request_id": identity()})

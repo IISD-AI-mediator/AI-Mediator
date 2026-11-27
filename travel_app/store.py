@@ -201,7 +201,7 @@ class Store:
                     raise Problem("같은 전송 번호로 다른 방을 만들 수 없어요.", 409)
                 return row[0], credential(row[0], key)
             if db.execute("SELECT count(*) FROM travel_rooms").fetchone()[0] >= self.room_limit:
-                raise Problem("현재 팀의 시험용 방 개설 한도에 도달했어요.", 429)
+                raise Problem("전체 여행방 개설 한도에 도달했어요.", 429)
             invite = secrets.token_urlsafe(18)
             room = {"invite": invite, "capacity": size, "fixed": fixed, "mediator": mediator,
                     "seats": list(range(1, size + 1)), "members": [new_member(invite, key, name, 1, sig)],

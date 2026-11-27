@@ -4,7 +4,9 @@
 
 ## 실행 방법
 
-[배포된 동행 열기](https://iisd-travel-mediator-bogc.onrender.com) · 방을 만들 때는 팀 개설 코드가 필요하다. 참가자는 방장이 공유한 초대 링크로 입장한다.
+[배포된 동행 열기](https://iisd-travel-mediator-bogc.onrender.com)
+
+`여행방 만들기`에서 닉네임과 총인원을 정하면 방이 열린다. 바로 다음 화면에서 `링크 복사`를 눌러 동행에게 보내고, `내 여행 조건 입력`을 눌러 계속한다. 초대받은 사람은 받은 링크를 열어 닉네임으로 같은 방에 입장한다.
 
 Windows에서 로컬로 실행하려면 Anaconda PowerShell Prompt에서 저장소 루트로 이동한다. 처음 한 번 Python 3.13 환경을 만든다.
 
