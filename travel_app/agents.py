@@ -52,6 +52,29 @@ def search_for(member, kinds, fixed, prefs, facts):
     return [grounded_search(member, kind, public_context(kind, fixed, prefs, facts)) for kind in kinds]
 
 
+def debate_evidence(member, kinds, fixed, proposal, values, facts, private):
+    old_facts = proposal.get("search_context", {})
+
+    def current_query(kind):
+        return search_facts(public_context(kind, fixed, values, facts), private)
+
+    evidence = []
+    for item in proposal["evidence"]:
+        kind = item["kind"]
+        if kind in kinds:
+            continue
+        query = current_query(kind)
+        if query != public_context(kind, fixed, proposal["values"], old_facts):
+            # No new lookup for this kind. Withdraw sources and prices from the previous criteria.
+            item = {**item, "status": "verify", "reason": "여행 조건이 바뀌어 새 조건에 맞는 근거를 확인해야 해요.",
+                    "sources": [], "entry": "", "destination": query.get("destination", "")}
+            if kind == "restaurant":
+                item["restaurant_criteria"] = {key: query.get(key) for key in ("lodging", "food")}
+        evidence.append(item)
+    evidence.extend(grounded_search(member, kind, current_query(kind)) for kind in kinds)
+    return evidence
+
+
 def build_agents(member):
     def interpret(state):
         packet = state["packet"]

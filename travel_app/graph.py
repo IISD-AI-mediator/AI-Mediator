@@ -6,7 +6,7 @@ from typing import TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
-from .agents import build_agents, model_evidence, search_facts, search_for, search_kinds
+from .agents import build_agents, debate_evidence, model_evidence, search_facts, search_kinds
 from .decisions import decide, distinct, generated_value, personal_budget_ceiling, private_texts, safe_text, within_budget
 from .domain import BY_KEY, JUDGE_NAME, display
 from .models import FIELD_GUIDE, ModelError
@@ -266,9 +266,11 @@ class Workflow:
             raise ModelError("개인 에이전트가 협상 행동을 정하지 못했어요.", transient=True)
         index = raw.get("choice")
         current = personal["values"].get(topic, {}).get("value")
-        new_value = generated_value(topic, raw.get("new_value"), private_texts(snapshot))
+        private = private_texts(snapshot)
+        new_value = generated_value(topic, raw.get("new_value"), private)
         selection = options[index] if type(index) is int and 0 <= index < len(options) else current
         value = new_value if new_value is not None else selection
+        offered = value
         prior = personal["values"].get(topic, {})
         requested_priority = raw.get("priority")
         valid_priority = requested_priority in ("prefer", "important", "must")
@@ -281,30 +283,39 @@ class Workflow:
         if topic == "budget" and ceiling and not authorized and not within_budget(value, ceiling):
             value = current if within_budget(current, ceiling) else ceiling
             stance = "defend"
-        facts = personal.get("search_context", {}) | search_facts(raw.get("search_context"), private_texts(snapshot))
+        values = personal["values"].copy()
+        if value is not None and not protected:
+            priority = prior.get("priority", "prefer") if current == value and stance != "yield" else "prefer"
+            if note and valid_priority:
+                priority = requested_priority
+            values[topic] = {"value": value, "priority": priority}
+        new_facts = search_facts(raw.get("search_context"), private)
+        old_facts = personal.get("search_context", {})
+        facts = old_facts | new_facts
         kinds = search_kinds(raw) if note else []
-        if note and facts.get("food") and raw.get("search_context") and "restaurant" not in kinds:
+        if note and facts.get("food") and new_facts and "restaurant" not in kinds:
             kinds.append("restaurant")
-        evidence = search_for(self.member,kinds[:2],snapshot["fixed"],personal["values"],facts)
+        # Keep context such as a particular branch for unchanged, broad preferences.
+        # An inferred term cannot override a revised value or bypass a protected condition.
+        if value != current or offered != value or authorized:
+            facts.pop(topic, None)
+        for key in new_facts:
+            protected_fact = (values.get(key, {}).get("priority") == "must" or key in personal.get("overrides", [])
+                              or key == "budget" and ceiling)
+            if protected_fact and new_facts[key] != old_facts.get(key):
+                facts.pop(key, None)
+        evidence = debate_evidence(self.member, kinds[:2], snapshot["fixed"], personal, values, facts, private)
         publish = speech(topic, spoken(member["profile"]["persona"]["preset"], stance, topic, value))
 
         def apply(room):
             p = room["proposals"][str(seat)]
-            p["stance"], p["focus"], p["search_context"] = stance, topic, facts
-            if evidence:
-                refreshed = {e["kind"] for e in evidence}
-                p["evidence"] = [e for e in p["evidence"] if e["kind"] not in refreshed] + evidence
+            p.update(stance=stance, focus=topic, search_context=facts, values=values, evidence=evidence)
             if value is not None and not protected:
-                previous = p["values"].get(topic, {})
-                priority = previous.get("priority", "prefer") if previous.get("value") == value and stance != "yield" else "prefer"
-                if note and valid_priority:
-                    priority = raw["priority"]
                 if authorized and topic not in p.setdefault("overrides", []):
                     p["overrides"].append(topic)
                 if topic == "budget" and topic in p.get("overrides", []):
                     # A cheaper proposal can coexist with the owner's authorized spending limit.
                     p["budget_ceiling"] = value if authorized else ceiling
-                p["values"][topic] = {"value": value, "priority": priority}
             publish(room)
         return apply
 
